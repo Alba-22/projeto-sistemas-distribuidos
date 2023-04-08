@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+message Client {
+  // Client ID
+  string CID = 1;
+  // JSON string representing client data: at least a name
+  string data = 2;
+}
+
+message Product {
+  // Produto ID
+  string PID = 1;
+  // JSON string representing produto data: at least product name, price, and
+  // quantity
+  string data = 2;
+}
+
+message Order {
+  // Order ID
+  string OID = 1;
+  // CLient ID
+  string CID = 2;
+  // JSON string representing at least array of PIDs, prices, and quantities
+  string data = 3;
+}
+
+message Reply {
+  // Error code: 0 for success
+  int32 error = 1;
+  // Error message, if error > 0
+  optional string description = 2;
+}
+
+message ID {
+  // generic ID for CID, PID and OID
+  string ID = 1;
+}
+
+service AdminPortal {
+  rpc CreateClient(Client) returns (Reply) {}
+  rpc RetrieveClient(ID) returns (Client) {}
+  rpc UpdateClient(Client) returns (Reply) {}
+  rpc DeleteClient(ID) returns (Reply) {}
+  rpc CreateProduct(Product) returns (Reply) {}
+  rpc RetrieveProduct(ID) returns (Product) {}
+  rpc UpdateProduct(Product) returns (Reply) {}
+  rpc DeleteProduct(ID) returns (Reply) {}
+}
+
+service OrderPortal {
+  rpc CreateOrder(Order) returns (Reply) {}
+  rpc RetrieveOrder(ID) returns (Order) {}
+  rpc UpdateOrder(Order) returns (Reply) {}
+  rpc DeleteOrder(ID) returns (Reply) {}
+  rpc RetrieveClientOrders(ID) returns (stream Order) {}
+}
