@@ -8,7 +8,14 @@ from paho.mqtt import client as mqtt_client
 
 from proto import api_pb2, api_pb2_grpc
 
-hash_map = {"clients": [], "products": [], "orders": []}
+# Operations on HashMap should follow this model:
+# {
+#   "key": "123",
+#   "op": "ADD" | "UPDATE" | "DELETE",
+#   "data": {}
+# }
+
+hash_map = {"clients": {}, "products": {}, "orders": {}}
 
 class AdminPortal(api_pb2_grpc.AdminPortalServicer):
     """Provide methods that implement functionality of Admin Portal Server"""
@@ -25,7 +32,12 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             client_data = json.loads(request.data)
             print(f"Criando Cliente: ID {request.CID} | Nome: {client_data['name']}")
             new_client = {"CID": request.CID, "name": client_data["name"]}
-            self.mqtt.publish("clients", json.dumps(new_client))
+            body = {
+                "op": "ADD",
+                "key": request.CID,
+                "data": new_client,
+            }
+            self.mqtt.publish("clients", json.dumps(body))
             return api_pb2.Reply(error=0)
         except:
             return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao criar o cliente")
@@ -43,11 +55,11 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             # return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao obter os dados do cliente")
 
 
-    def get_client_by_id(self, client_id: int):
+    def get_client_by_id(self, client_id: str):
         clients = hash_map["clients"]
-        for client in clients:
-            if client["CID"] == client_id:
-                return client
+        for key in clients.keys():
+            if key == client_id:
+                return clients[key]
         return None
 
 
@@ -97,7 +109,13 @@ def handle_mqtt_subscribe(mqtt):
     def on_subscribe_message(__, ___, msg):
         print(f"[TÓPICO = {msg.topic}] Mensagem recebida {msg.payload.decode()}")
         result = json.loads(msg.payload.decode())
-        hash_map[msg.topic].append(result)
+        if result["op"] == "ADD":
+            hash_map[msg.topic][result["key"]] = result["data"]
+        elif result["op"] == "UPDATE":
+            hash_map[msg.topic][result["key"]] = result["data"]
+        elif result["op"] == "DELETE":
+            del hash_map[msg.topic][result["key"]]
+ 
         print(hash_map)
 
     mqtt.subscribe("clients")
