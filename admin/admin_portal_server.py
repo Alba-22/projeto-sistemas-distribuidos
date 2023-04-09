@@ -27,7 +27,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
     def CreateClient(self, request, context):
         print("Creating Client " + request.data)
         client_data = json.loads(request.data)
-        new_client = {"CID": request.CID, "name": client_data.name}
+        new_client = {"CID": request.CID, "name": client_data["name"]}
         self.mqtt.publish("clients", json.dumps(new_client))
         return api_pb2.Reply(error=0)
 

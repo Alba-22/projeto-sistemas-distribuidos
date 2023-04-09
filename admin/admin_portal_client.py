@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import logging
 import os
+import json
 import sys
 
 import grpc
@@ -10,18 +11,26 @@ from proto import api_pb2, api_pb2_grpc
 
 
 def run():
+    # Check port
+    if len(sys.argv) == 1:
+        print("É necessário informar a porta que o servidor irá rodar")
+        return
+    port = sys.argv[1]
+    try:
+        int(port)
+    except:
+        print("O valor passado para a porta é inválido")
+        return
+
     # Stabilish connection to server
     print("Conectando ao servidor...")
-    # TODO: Tratamento de exceção @octo
-    channel = grpc.insecure_channel("localhost:50051")
-    stub = api_pb2_grpc.AdminPortalStub(channel)
-    # stub.CreateClient(api_pb2.Client(CID=1, data=""))
-    stub.RetrieveClient(api_pb2.ID(ID=4))
 
-    # with grpc.insecure_channel('localhost:50055') as channel:
-    #     stub = api_pb2_grpc.AdminPortalStub(channel)
-    #     response = stub.SayHello(helloworld_pb2.HelloRequest(name='you'))
-    # print("Greeter client received: " + response.message)
+    try:
+        channel = grpc.insecure_channel(f"localhost:{port}")
+        stub = api_pb2_grpc.AdminPortalStub(channel)
+    except:
+        print("Ocorreu um erro ao conectar ao servidor! Verifique se a porta está correta!")
+        return
 
     keep = True
     while keep:
@@ -29,7 +38,7 @@ def run():
         option = get_menu_option()
         if option == "1":
             print(option)
-            stub.CreateClient(api_pb2.Client(CID=1))
+            # stub.CreateClient(api_pb2.Client(CID="1", data=json.dumps({"name": "Alba"})))
             end_of_option()
         elif option == "2":
             print(option)
