@@ -1,72 +1,65 @@
 from __future__ import print_function
 
 import logging
-
-# import proto.api_pb2 as api_pb2
-# import proto.api_pb2_grpc as api_pb2_grpc
-
+import os
 import sys
-sys.path.append("../proto")
-import api_pb2
-import api_pb2_grpc
 
 import grpc
-import os
 
+from proto import api_pb2, api_pb2_grpc
 
 
 def run():
     # Stabilish connection to server
     print("Conectando ao servidor...")
     # TODO: Tratamento de exceção @octo
-    channel = grpc.insecure_channel('localhost:50051')
+    channel = grpc.insecure_channel("localhost:50051")
     stub = api_pb2_grpc.AdminPortalStub(channel)
     # stub.CreateClient(api_pb2.Client(CID=1, data=""))
     stub.RetrieveClient(api_pb2.ID(ID=4))
-    
-    
+
     # with grpc.insecure_channel('localhost:50055') as channel:
     #     stub = api_pb2_grpc.AdminPortalStub(channel)
     #     response = stub.SayHello(helloworld_pb2.HelloRequest(name='you'))
     # print("Greeter client received: " + response.message)
 
-
     keep = True
-    while (keep):
-        os.system('cls' if os.name == 'nt' else 'clear')
-        option = get_menu_option();
-        if (option == "1"):
+    while keep:
+        os.system("cls" if os.name == "nt" else "clear")
+        option = get_menu_option()
+        if option == "1":
             print(option)
             stub.CreateClient(api_pb2.Client(CID=1))
             end_of_option()
-        elif (option == "2"):
+        elif option == "2":
             print(option)
             end_of_option()
-        elif (option == "3"):
+        elif option == "3":
             print(option)
             end_of_option()
-        elif (option == "4"):
+        elif option == "4":
             print(option)
             end_of_option()
-        elif (option == "5"):
+        elif option == "5":
             print(option)
             end_of_option()
-        elif (option == "6"):
+        elif option == "6":
             print(option)
             end_of_option()
-        elif (option == "7"):
+        elif option == "7":
             print(option)
             end_of_option()
-        elif (option == "8"):
+        elif option == "8":
             print(option)
             end_of_option()
-        elif (option == "9"):
+        elif option == "9":
             print("Saindo...")
             end_of_option()
             keep = False
         else:
             print("Opção Inválida")
             end_of_option()
+
 
 def get_menu_option():
     print("====== MENU ======")
@@ -86,9 +79,11 @@ def get_menu_option():
 
     return option
 
+
 def end_of_option():
     input("Pressione qualquer tecla para continuar!")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     logging.basicConfig()
     run()
