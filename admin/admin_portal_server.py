@@ -20,7 +20,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
         try:
             client = self.get_client_by_id(request.CID)
             if client is not None:
-                return api_pb2.Reply(error=404, description=f"Já existe um cliente com o ID {request.CID}")
+                return api_pb2.Reply(error=400, description=f"Já existe um cliente com o ID {request.CID}")
 
             client_data = json.loads(request.data)
             print(f"Creating Client: ID {request.CID} | Name: {client_data['name']}")

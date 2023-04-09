@@ -41,7 +41,11 @@ def run():
             print("> Adição de Novo Cliente")
             client_id = input("Digite o id do novo cliente: ")
             client_name = input("Digite o nome do cliente: ")
-            stub.CreateClient(api_pb2.Client(CID=client_id, data=json.dumps({"name": client_name})))
+            result = stub.CreateClient(api_pb2.Client(CID=client_id, data=json.dumps({"name": client_name})))
+            if result.error == 0:
+                print("Cliente adicionado com sucesso!")
+            else:
+                print(f"Ocorreu um erro: {result.description}")
             end_of_option()
         elif option == "2":
             print(option)
