@@ -89,7 +89,21 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Reply(error=0)
         except:
             return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao atualizar o cliente")
+    
+    def DeleteClient(self, request, _):
+        try:
+            client = self.get_client_by_id(request.ID)
+            if client is None:
+                return api_pb2.Reply(error=400, description=f"Não há nenhum usuário com o ID {request.ID}")
+            body = {
+                "op": "DELETE",
+                "key": request.ID,
+            }
+            self.mqtt.publish("clients", json.dumps(body))
+            return api_pb2.Reply(error=0)
 
+        except:
+            return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao deletar o cliente")
 
 def serve():
     if len(sys.argv) == 1:

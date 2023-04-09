@@ -76,7 +76,15 @@ def run():
                 print(f"Erro: {result.description}")
             end_of_option()
         elif option == "4":
-            print(option)
+            clear_screen()
+            print("========================")
+            print("> Deleção de Cliente")
+            client_id = input("Digite o id do cliente: ")
+            result = stub.DeleteClient(api_pb2.ID(ID=client_id))
+            if result.error == 0:
+                print("Cliente deletado com sucesso!")
+            else:
+                print(f"Erro: {result.description}")
             end_of_option()
         elif option == "5":
             print(option)
