@@ -17,6 +17,18 @@ from proto import api_pb2, api_pb2_grpc
 
 hash_map = {"clients": {}, "products": {}, "orders": {}}
 
+def show_database():
+    print("> CLIENETS")
+    for key in hash_map["clients"].keys():
+        print(f"{key} -> {hash_map['clients'][key]}")
+    print("> PRODUTOS")
+    for key in hash_map["products"].keys():
+        print(f"{key} -> {hash_map['products'][key]}")
+    print("> PEDIDOS")
+    for key in hash_map["orders"].keys():
+        print(f"{key} -> {hash_map['orders'][key]}")
+  
+
 class AdminPortal(api_pb2_grpc.AdminPortalServicer):
     """Provide methods that implement functionality of Admin Portal Server"""
 
@@ -107,7 +119,7 @@ def connect_mqtt(grpc_port):
 
 def handle_mqtt_subscribe(mqtt):
     def on_subscribe_message(__, ___, msg):
-        print(f"[TÓPICO = {msg.topic}] Mensagem recebida {msg.payload.decode()}")
+        print(f"[TÓPICO = {msg.topic}] Mensagem recebida: {msg.payload.decode()}")
         result = json.loads(msg.payload.decode())
         if result["op"] == "ADD":
             hash_map[msg.topic][result["key"]] = result["data"]
@@ -116,7 +128,7 @@ def handle_mqtt_subscribe(mqtt):
         elif result["op"] == "DELETE":
             del hash_map[msg.topic][result["key"]]
  
-        print(hash_map)
+        show_database()
 
     mqtt.subscribe("clients")
     mqtt.subscribe("products")
