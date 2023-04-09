@@ -2,6 +2,14 @@ from __future__ import print_function
 
 import logging
 
+# import proto.api_pb2 as api_pb2
+# import proto.api_pb2_grpc as api_pb2_grpc
+
+import sys
+sys.path.append("../proto")
+import api_pb2
+import api_pb2_grpc
+
 import grpc
 import os
 
@@ -9,9 +17,16 @@ import os
 
 def run():
     # Stabilish connection to server
-    # print("Will try to greet world ...")
-    # with grpc.insecure_channel('localhost:50051') as channel:
-    #     stub = helloworld_pb2_grpc.GreeterStub(channel)
+    print("Conectando ao servidor...")
+    # TODO: Tratamento de exceção @octo
+    channel = grpc.insecure_channel('localhost:50051')
+    stub = api_pb2_grpc.AdminPortalStub(channel)
+    # stub.CreateClient(api_pb2.Client(CID=1, data=""))
+    stub.RetrieveClient(api_pb2.ID(ID=4))
+    
+    
+    # with grpc.insecure_channel('localhost:50055') as channel:
+    #     stub = api_pb2_grpc.AdminPortalStub(channel)
     #     response = stub.SayHello(helloworld_pb2.HelloRequest(name='you'))
     # print("Greeter client received: " + response.message)
 
@@ -22,6 +37,7 @@ def run():
         option = get_menu_option();
         if (option == "1"):
             print(option)
+            stub.CreateClient(api_pb2.Client(CID=1))
             end_of_option()
         elif (option == "2"):
             print(option)
