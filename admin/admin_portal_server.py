@@ -1,10 +1,6 @@
 import json
 import logging
-
-# from proto import api_pb2
-# import proto.api_pb2
 import sys
-import uuid
 from concurrent import futures
 
 import grpc
@@ -12,11 +8,7 @@ from paho.mqtt import client as mqtt_client
 
 from proto import api_pb2, api_pb2_grpc
 
-# from proto import api_pb2 as api
-# import proto.api_pb2_grpc as apigrpc
-
 hash_map = {"clients": [], "products": [], "orders": []}
-
 
 class AdminPortal(api_pb2_grpc.AdminPortalServicer):
     """Provide methods that implement functionality of Admin Portal Server"""
@@ -24,12 +16,27 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
     def __init__(self, mqtt):
         self.mqtt = mqtt
 
-    def CreateClient(self, request, context):
-        print("Creating Client " + request.data)
-        client_data = json.loads(request.data)
-        new_client = {"CID": request.CID, "name": client_data["name"]}
-        self.mqtt.publish("clients", json.dumps(new_client))
-        return api_pb2.Reply(error=0)
+    def CreateClient(self, request, _):
+        try:
+            client = self.get_client_by_id(request.CID)
+            if client is not None:
+                return api_pb2.Reply(error=404, description=f"Já existe um cliente com o ID {request.CID}")
+
+            client_data = json.loads(request.data)
+            print(f"Creating Client: ID {request.CID} | Name: {client_data['name']}")
+            new_client = {"CID": request.CID, "name": client_data["name"]}
+            self.mqtt.publish("clients", json.dumps(new_client))
+            return api_pb2.Reply(error=0)
+        except:
+            return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao criar o cliente")
+
+
+    def get_client_by_id(self, client_id: int):
+        clients = hash_map["clients"]
+        for client in clients:
+            if client["CID"] == client_id:
+                return client
+        return None
 
 
 def serve():

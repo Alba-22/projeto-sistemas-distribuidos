@@ -37,8 +37,11 @@ def run():
         os.system("cls" if os.name == "nt" else "clear")
         option = get_menu_option()
         if option == "1":
-            print(option)
-            # stub.CreateClient(api_pb2.Client(CID="1", data=json.dumps({"name": "Alba"})))
+            print("========================")
+            print("> Adição de Novo Cliente")
+            client_id = input("Digite o id do novo cliente: ")
+            client_name = input("Digite o nome do cliente: ")
+            stub.CreateClient(api_pb2.Client(CID=client_id, data=json.dumps({"name": client_name})))
             end_of_option()
         elif option == "2":
             print(option)
