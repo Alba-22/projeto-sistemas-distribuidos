@@ -87,7 +87,22 @@ def run():
                 print(f"Erro: {result.description}")
             end_of_option()
         elif option == "5":
-            print(option)
+            clear_screen()
+            print("========================")
+            print("> Adição de Novo Produto")
+            product_id = input("Digite o id do novo produto: ")
+            product_name = input("Digite o nome do produto: ")
+            product_price = input("Digite o preço do produto: ")
+            product_quantity = input("Digite a quantidade do produto: ")
+            result = stub.CreateProduct(api_pb2.Product(PID=product_id, data=json.dumps({
+                "name": product_name,
+                "price": product_price,
+                "quantity": product_quantity,
+            })))
+            if result.error == 0:
+                print("Produto adicionado com sucesso!")
+            else:
+                print(f"Erro: {result.description}")
             end_of_option()
         elif option == "6":
             print(option)
@@ -115,10 +130,10 @@ def get_menu_option():
     print("[3] Atualizar Cliente")
     print("[4] Deletar Cliente")
     print("> Produtos")
-    print("[5] Criar Cliente")
-    print("[6] Obter Cliente")
-    print("[7] Atualizar Cliente")
-    print("[8] Deletar Cliente")
+    print("[5] Criar Produto")
+    print("[6] Obter Produto")
+    print("[7] Atualizar Produto")
+    print("[8] Deletar Produto")
     print("> Outros")
     print("[9] Sair")
     option = input("> Escolha: ")
