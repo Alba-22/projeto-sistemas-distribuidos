@@ -123,7 +123,15 @@ def run():
             print(option)
             end_of_option()
         elif option == "8":
-            print(option)
+            clear_screen()
+            print("========================")
+            print("> Deleção de Produtos")
+            product_id = input("Digite o id do produto a ser deletado: ")
+            result = stub.DeleteProduct(api_pb2.ID(ID=product_id))
+            if result.error == 0:
+                print("Produto deletado com sucesso!")
+            else:
+                print(f"Erro: {result.description}")
             end_of_option()
         elif option == "9":
             print("Saindo...")

@@ -159,6 +159,21 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             if key == product_id:
                 return products[key]
         return None
+    
+    def DeleteProduct(self, request, _):
+        try:
+            product = self.get_product_by_id(request.ID)
+            if product is None:
+                return api_pb2.Reply(error=400, description=f"Não há nenhum produto com o ID {request.ID}")
+            body = {
+                "op": "DELETE",
+                "key": request.ID,
+            }
+            self.mqtt.publish("products", json.dumps(body))
+            return api_pb2.Reply(error=0)
+
+        except:
+            return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao deletar o produto")
 
 def serve():
     if len(sys.argv) == 1:
