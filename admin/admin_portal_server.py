@@ -18,7 +18,7 @@ from proto import api_pb2, api_pb2_grpc
 hash_map = {"clients": {}, "products": {}, "orders": {}}
 
 def show_database():
-    print("> CLIENETS")
+    print("> CLIENTES")
     for key in hash_map["clients"].keys():
         print(f"{key} -> {hash_map['clients'][key]}")
     print("> PRODUTOS")
@@ -42,7 +42,6 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                 return api_pb2.Reply(error=400, description=f"Já existe um cliente com o ID {request.CID}")
 
             client_data = json.loads(request.data)
-            print(f"Criando Cliente: ID {request.CID} | Nome: {client_data['name']}")
             new_client = {"CID": request.CID, "name": client_data["name"]}
             body = {
                 "op": "ADD",
@@ -66,13 +65,30 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Client(CID="", data="")
             # return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao obter os dados do cliente")
 
-
     def get_client_by_id(self, client_id: str):
         clients = hash_map["clients"]
         for key in clients.keys():
             if key == client_id:
                 return clients[key]
         return None
+    
+    def UpdateClient(self, request, _):
+        try:
+            client = self.get_client_by_id(request.CID)
+            if client is None:
+                return api_pb2.Reply(error=400, description=f"Não há nenhum usuário com o ID {request.CID}")
+
+            client_data = json.loads(request.data)
+            client_data = {"CID": request.CID, "name": client_data["name"]}
+            body = {
+                "op": "UPDATE",
+                "key": request.CID,
+                "data": client_data,
+            }
+            self.mqtt.publish("clients", json.dumps(body))
+            return api_pb2.Reply(error=0)
+        except:
+            return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao atualizar o cliente")
 
 
 def serve():

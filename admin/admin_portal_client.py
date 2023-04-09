@@ -46,7 +46,7 @@ def run():
             if result.error == 0:
                 print("Cliente adicionado com sucesso!")
             else:
-                print(f"Ocorreu um erro: {result.description}")
+                print(f"Erro: {result.description}")
             end_of_option()
         elif option == "2":
             clear_screen()
@@ -61,10 +61,19 @@ def run():
                     print(f"[-] {key}: {value}")
                     
             else:
-                print(f"Não há nenhum cliente com o ID {client_id}")
+                print(f"Erro: Não há nenhum cliente com o ID {client_id}")
             end_of_option()
         elif option == "3":
-            print(option)
+            clear_screen()
+            print("========================")
+            print("> Atualização de Cliente")
+            client_id = input("Digite o id do cliente: ")
+            client_name = input("Digite o novo nome do cliente: ")
+            result = stub.UpdateClient(api_pb2.Client(CID=client_id, data=json.dumps({"name": client_name})))
+            if result.error == 0:
+                print("Cliente atualizado com sucesso!")
+            else:
+                print(f"Erro: {result.description}")
             end_of_option()
         elif option == "4":
             print(option)
