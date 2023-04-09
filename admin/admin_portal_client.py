@@ -52,7 +52,7 @@ def run():
             clear_screen()
             print("========================")
             print("> Obter Cliente")
-            client_id = input("Digite o id cliente: ")
+            client_id = input("Digite o id do cliente: ")
             result = stub.RetrieveClient(api_pb2.ID(ID=client_id))
             if len(result.CID) != 0:
                 print(f"[-] ID: {result.CID}")
@@ -105,7 +105,19 @@ def run():
                 print(f"Erro: {result.description}")
             end_of_option()
         elif option == "6":
-            print(option)
+            clear_screen()
+            print("========================")
+            print("> Obter Produto")
+            product_id = input("Digite o id do produto: ")
+            result = stub.RetrieveProduct(api_pb2.ID(ID=product_id))
+            if len(result.PID) != 0:
+                print(f"[-] ID: {result.PID}")
+                data = json.loads(result.data)
+                for key, value in data.items():
+                    print(f"[-] {key}: {value}")
+                    
+            else:
+                print(f"Erro: Não há nenhum produto com o ID {product_id}")
             end_of_option()
         elif option == "7":
             print(option)

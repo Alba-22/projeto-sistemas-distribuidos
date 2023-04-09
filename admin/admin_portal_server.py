@@ -60,7 +60,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                 return api_pb2.Client(CID="", data="")
                 # return api_pb2.Reply(error=404, description=f"Não há nenhum usuário com o ID {request.ID}")
 
-            return api_pb2.Client(CID=client["CID"], data=json.dumps({"name": client["name"]}))
+            return api_pb2.Client(CID=client["CID"], data=json.dumps({"nome": client["name"]}))
         except:
             return api_pb2.Client(CID="", data="")
             # return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao obter os dados do cliente")
@@ -140,6 +140,18 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Reply(error=0)
         except:
             return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao criar o produto")
+
+    def RetrieveProduct(self, request, _):
+        try:
+            product = self.get_product_by_id(request.ID)
+            if product is None:
+                return api_pb2.Product(PID="", data="")
+                # return api_pb2.Reply(error=404, description=f"Não há nenhum usuário com o ID {request.ID}")
+
+            return api_pb2.Product(PID=product["PID"], data=json.dumps({"nome": product["name"], "preço": product["price"], "quantidade": product["quantity"]}))
+        except:
+            return api_pb2.Product(PID="", data="")
+            # return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao obter os dados do cliente")
 
     def get_product_by_id(self, product_id: str):
         products = hash_map["products"]
