@@ -34,9 +34,10 @@ def run():
 
     keep = True
     while keep:
-        os.system("cls" if os.name == "nt" else "clear")
+        clear_screen()
         option = get_menu_option()
         if option == "1":
+            clear_screen()
             print("========================")
             print("> Adição de Novo Cliente")
             client_id = input("Digite o id do novo cliente: ")
@@ -48,7 +49,19 @@ def run():
                 print(f"Ocorreu um erro: {result.description}")
             end_of_option()
         elif option == "2":
-            print(option)
+            clear_screen()
+            print("========================")
+            print("> Obter Cliente")
+            client_id = input("Digite o id cliente: ")
+            result = stub.RetrieveClient(api_pb2.ID(ID=client_id))
+            if len(result.CID) != 0:
+                print(f"[-] ID: {result.CID}")
+                data = json.loads(result.data)
+                for key, value in data.items():
+                    print(f"[-] {key}: {value}")
+                    
+            else:
+                print(f"Não há nenhum cliente com o ID {client_id}")
             end_of_option()
         elif option == "3":
             print(option)
@@ -99,6 +112,8 @@ def get_menu_option():
 def end_of_option():
     input("Pressione qualquer tecla para continuar!")
 
+def clear_screen():
+    os.system("cls" if os.name == "nt" else "clear")
 
 if __name__ == "__main__":
     logging.basicConfig()

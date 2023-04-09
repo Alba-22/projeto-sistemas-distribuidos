@@ -23,12 +23,24 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                 return api_pb2.Reply(error=400, description=f"Já existe um cliente com o ID {request.CID}")
 
             client_data = json.loads(request.data)
-            print(f"Creating Client: ID {request.CID} | Name: {client_data['name']}")
+            print(f"Criando Cliente: ID {request.CID} | Nome: {client_data['name']}")
             new_client = {"CID": request.CID, "name": client_data["name"]}
             self.mqtt.publish("clients", json.dumps(new_client))
             return api_pb2.Reply(error=0)
         except:
             return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao criar o cliente")
+    
+    def RetrieveClient(self, request, _):
+        try:
+            client = self.get_client_by_id(request.ID)
+            if client is None:
+                return api_pb2.Client(CID="", data="")
+                # return api_pb2.Reply(error=404, description=f"Não há nenhum usuário com o ID {request.ID}")
+
+            return api_pb2.Client(CID=client["CID"], data=json.dumps({"name": client["name"]}))
+        except:
+            return api_pb2.Client(CID="", data="")
+            # return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao obter os dados do cliente")
 
 
     def get_client_by_id(self, client_id: int):
