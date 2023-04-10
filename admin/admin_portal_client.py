@@ -54,7 +54,7 @@ def run():
             print("> Obter Cliente")
             client_id = input("Digite o id do cliente: ")
             result = stub.RetrieveClient(api_pb2.ID(ID=client_id))
-            if len(result.CID) != 0:
+            if result.CID != "0":
                 print(f"[-] ID: {result.CID}")
                 data = json.loads(result.data)
                 for key, value in data.items():

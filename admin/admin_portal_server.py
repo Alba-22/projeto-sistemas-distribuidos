@@ -57,7 +57,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
         try:
             client = self.get_client_by_id(request.ID)
             if client is None:
-                return api_pb2.Client(CID="", data="")
+                return api_pb2.Client(CID="0", data="")
                 # return api_pb2.Reply(error=404, description=f"Não há nenhum usuário com o ID {request.ID}")
 
             return api_pb2.Client(CID=client["CID"], data=json.dumps({"nome": client["name"]}))
