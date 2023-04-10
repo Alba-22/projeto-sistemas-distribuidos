@@ -130,7 +130,12 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             except ValueError:
                     return api_pb2.Reply(error=400, description=f"O valor informado para quantidade é inválido!")
 
-            new_product = {"PID": request.PID, "name": product_data["name"], "price": product_data["price"], "quantity": product_data["quantity"]}
+            new_product = {
+                "PID": request.PID, 
+                "name": product_data["name"], 
+                "price": float(product_data["price"]), 
+                "quantity": int(product_data["quantity"])
+            }
             body = {
                 "op": "ADD",
                 "key": request.PID,
@@ -159,6 +164,47 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             if key == product_id:
                 return products[key]
         return None
+    
+    def UpdateProduct(self, request, _):
+        try:
+            product = self.get_product_by_id(request.PID)
+            if product is None:
+                return api_pb2.Reply(error=400, description=f"Não há nenhum usuário com o ID {request.PID}")
+
+            product_data = json.loads(request.data)
+
+            # Validate values for price and quantity
+            try:
+                price_float = float(product_data["price"])
+                if (price_float < 0):
+                    return api_pb2.Reply(error=400, description=f"O valor informado para preço é inválido!")
+                              
+            except ValueError:
+                    return api_pb2.Reply(error=400, description=f"O valor informado para preço é inválido!")
+            
+            try:
+                quantity_int = int(product_data["quantity"])
+                if (quantity_int < 0):
+                    return api_pb2.Reply(error=400, description=f"O valor informado para quantidade é inválido!")
+
+            except ValueError:
+                    return api_pb2.Reply(error=400, description=f"O valor informado para quantidade é inválido!")
+
+            product_data = {
+                "PID": request.PID,
+                "name": product_data["name"],
+                "price": float(product_data["price"]),
+                "quantity": int(product_data["quantity"])
+            }
+            body = {
+                "op": "UPDATE",
+                "key": request.PID,
+                "data": product_data,
+            }
+            self.mqtt.publish("products", json.dumps(body))
+            return api_pb2.Reply(error=0)
+        except:
+            return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao atualizar o produto")
     
     def DeleteProduct(self, request, _):
         try:

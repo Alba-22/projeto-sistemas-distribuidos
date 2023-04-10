@@ -120,7 +120,18 @@ def run():
                 print(f"Erro: Não há nenhum produto com o ID {product_id}")
             end_of_option()
         elif option == "7":
-            print(option)
+            clear_screen()
+            print("========================")
+            print("> Atualização de Produto")
+            product_id = input("Digite o id do produto a ser atualizado: ")
+            product_name = input("Digite o novo nome do produto: ")
+            product_price = input("Digite o preço do produto: ")
+            product_quantity = input("Digite a quantidade do produto: ")
+            result = stub.UpdateProduct(api_pb2.Product(PID=product_id, data=json.dumps({"name": product_name, "price": product_price, "quantity": product_quantity})))
+            if result.error == 0:
+                print("Produto atualizado com sucesso!")
+            else:
+                print(f"Erro: {result.description}")
             end_of_option()
         elif option == "8":
             clear_screen()
