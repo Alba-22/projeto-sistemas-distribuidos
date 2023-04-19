@@ -28,7 +28,8 @@ disable = [
     "missing-class-docstring",
     "missing-function-docstring",
     "invalid-name",
-    "too-few-public-methods"
+    "too-few-public-methods",
+    "bare-except"
 ]
 extension-pkg-allow-list = [
     "pydantic"
