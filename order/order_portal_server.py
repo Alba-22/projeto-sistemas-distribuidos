@@ -15,6 +15,18 @@ hash_map = {
 }
 
 
+def show_database():
+    print("> CLIENTES")
+    for key in hash_map["clients"]:
+        print(f"{key} -> {hash_map['clients'][key]}")
+    print("> PRODUTOS")
+    for key in hash_map["products"]:
+        print(f"{key} -> {hash_map['products'][key]}")
+    print("> PEDIDOS")
+    for key in hash_map["orders"]:
+        print(f"{key} -> {hash_map['orders'][key]}")
+
+
 class OrderPortal(api_pb2_grpc.OrderPortalServicer):
     """Provide methods that implement functionality of Order Portal Server"""
 
@@ -23,23 +35,103 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
 
     def CreateOrder(self, request, context):
         print("Creating Order", request.data)
-        ...
+        try:
+            client = self.get_client_by_id(request.CID)
+            if client is None:
+                return api_pb2.Reply(
+                    error=404, description=f"Cliente não encontado: {request.CID}"
+                )
+            existing_order = self.get_order_by_id(request.OID)
+            if existing_order is not None:
+                return api_pb2.Reply(
+                    error=400, description=f"Já existe um pedido com o ID {request.OID}"
+                )
+
+            # request.data: json encoded list [{"id": ... , "quantity": str}]
+            order_data: list[dict] = json.loads(request.data)
+
+            product_updates_to_publish = []
+            for order_item in order_data:
+                # Verifica disponibilidade de produto e quantidade.
+                product = self.get_product_by_id(order_item["id"])
+                if product is None:
+                    return api_pb2.Reply(
+                        error=404,
+                        description=f"Produto não encontado: {order_item['id']}",
+                    )
+
+                try:
+                    quantity_int = int(order_item["quantity"])
+                    if quantity_int < 0:
+                        return api_pb2.Reply(
+                            error=400,
+                            description="O valor informado para quantidade é inválido!",
+                        )
+                except ValueError:
+                    return api_pb2.Reply(
+                        error=400,
+                        description="O valor informado para quantidade é inválido!",
+                    )
+
+                if product["quantity"] < quantity_int:
+                    return api_pb2.Reply(
+                        error=400,
+                        description=f"Quantidade indisponível de produto com ID {product['id']}",
+                    )
+
+                # Ajusta quantidade disponível de produto, se necessário.
+                product_updates_to_publish.append(
+                    {
+                        "op": "UPDATE",
+                        "key": product["id"],
+                        "data": {
+                            "PID": product["id"],
+                            "name": product["name"],
+                            "price": product["price"],
+                            "quantity": product["quantity"] - quantity_int,
+                        },
+                    }
+                )
+
+            # Executa a operação e retorna código de erro/sucesso.
+            # TODO
+        except:
+            return api_pb2.Reply(
+                error=500, description="Ocorreu um erro ao criar o pedido"
+            )
 
     def RetrieveOrder(self, request, context):
         print("Retrieving Order", request.data)
-        ...
 
     def UpdateOrder(self, request, context):
         print("Updating Order", request.data)
-        ...
 
     def DeleteOrder(self, request, context):
         print("Deleting Order", request.data)
-        ...
 
     def RetrieveClientOrders(self, request, context):
         print("Retrieving client orders", request.data)
-        ...
+
+    def get_client_by_id(self, client_id: str):
+        clients = hash_map["clients"]
+        for key in clients.keys():
+            if key == client_id:
+                return clients[key]
+        return None
+
+    def get_order_by_id(self, order_id: str):
+        orders = hash_map["orders"]
+        for key in orders:
+            if key == order_id:
+                return orders[key]
+        return None
+
+    def get_product_by_id(self, product_id: str):
+        products = hash_map["products"]
+        for key in products.keys():
+            if key == product_id:
+                return products[key]
+        return None
 
 
 def serve():

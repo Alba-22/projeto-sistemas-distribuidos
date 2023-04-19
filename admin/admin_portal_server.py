@@ -17,6 +17,7 @@ from proto import api_pb2, api_pb2_grpc
 
 hash_map = {"clients": {}, "products": {}, "orders": {}}
 
+
 def show_database():
     print("> CLIENTES")
     for key in hash_map["clients"].keys():
@@ -27,7 +28,7 @@ def show_database():
     print("> PEDIDOS")
     for key in hash_map["orders"].keys():
         print(f"{key} -> {hash_map['orders'][key]}")
-  
+
 
 class AdminPortal(api_pb2_grpc.AdminPortalServicer):
     """Provide methods that implement functionality of Admin Portal Server"""
@@ -39,7 +40,10 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
         try:
             client = self.get_client_by_id(request.CID)
             if client is not None:
-                return api_pb2.Reply(error=400, description=f"Já existe um cliente com o ID {request.CID}")
+                return api_pb2.Reply(
+                    error=400,
+                    description=f"Já existe um cliente com o ID {request.CID}",
+                )
 
             client_data = json.loads(request.data)
             new_client = {"CID": request.CID, "name": client_data["name"]}
@@ -51,8 +55,10 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             self.mqtt.publish("clients", json.dumps(body))
             return api_pb2.Reply(error=0)
         except:
-            return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao criar o cliente")
-    
+            return api_pb2.Reply(
+                error=500, description=f"Ocorreu um erro ao criar o cliente"
+            )
+
     def RetrieveClient(self, request, _):
         try:
             client = self.get_client_by_id(request.ID)
@@ -60,7 +66,9 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                 return api_pb2.Client(CID="0", data="")
                 # return api_pb2.Reply(error=404, description=f"Não há nenhum usuário com o ID {request.ID}")
 
-            return api_pb2.Client(CID=client["CID"], data=json.dumps({"nome": client["name"]}))
+            return api_pb2.Client(
+                CID=client["CID"], data=json.dumps({"nome": client["name"]})
+            )
         except:
             return api_pb2.Client(CID="0", data="")
             # return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao obter os dados do cliente")
@@ -71,12 +79,15 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             if key == client_id:
                 return clients[key]
         return None
-    
+
     def UpdateClient(self, request, _):
         try:
             client = self.get_client_by_id(request.CID)
             if client is None:
-                return api_pb2.Reply(error=400, description=f"Não há nenhum usuário com o ID {request.CID}")
+                return api_pb2.Reply(
+                    error=400,
+                    description=f"Não há nenhum usuário com o ID {request.CID}",
+                )
 
             client_data = json.loads(request.data)
             client_data = {"CID": request.CID, "name": client_data["name"]}
@@ -88,13 +99,18 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             self.mqtt.publish("clients", json.dumps(body))
             return api_pb2.Reply(error=0)
         except:
-            return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao atualizar o cliente")
-    
+            return api_pb2.Reply(
+                error=500, description=f"Ocorreu um erro ao atualizar o cliente"
+            )
+
     def DeleteClient(self, request, _):
         try:
             client = self.get_client_by_id(request.ID)
             if client is None:
-                return api_pb2.Reply(error=400, description=f"Não há nenhum usuário com o ID {request.ID}")
+                return api_pb2.Reply(
+                    error=400,
+                    description=f"Não há nenhum usuário com o ID {request.ID}",
+                )
             body = {
                 "op": "DELETE",
                 "key": request.ID,
@@ -103,38 +119,54 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Reply(error=0)
 
         except:
-            return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao deletar o cliente")
-    
+            return api_pb2.Reply(
+                error=500, description=f"Ocorreu um erro ao deletar o cliente"
+            )
+
     def CreateProduct(self, request, _):
         try:
             product = self.get_product_by_id(request.PID)
             if product is not None:
-                return api_pb2.Reply(error=400, description=f"Já existe um produto com o ID {request.PID}")
+                return api_pb2.Reply(
+                    error=400,
+                    description=f"Já existe um produto com o ID {request.PID}",
+                )
 
             product_data = json.loads(request.data)
 
             # Validate values for price and quantity
             try:
                 price_float = float(product_data["price"])
-                if (price_float < 0):
-                    return api_pb2.Reply(error=400, description=f"O valor informado para preço é inválido!")
-                              
+                if price_float < 0:
+                    return api_pb2.Reply(
+                        error=400,
+                        description=f"O valor informado para preço é inválido!",
+                    )
+
             except ValueError:
-                    return api_pb2.Reply(error=400, description=f"O valor informado para preço é inválido!")
-            
+                return api_pb2.Reply(
+                    error=400, description=f"O valor informado para preço é inválido!"
+                )
+
             try:
                 quantity_int = int(product_data["quantity"])
-                if (quantity_int < 0):
-                    return api_pb2.Reply(error=400, description=f"O valor informado para quantidade é inválido!")
-                              
+                if quantity_int < 0:
+                    return api_pb2.Reply(
+                        error=400,
+                        description=f"O valor informado para quantidade é inválido!",
+                    )
+
             except ValueError:
-                    return api_pb2.Reply(error=400, description=f"O valor informado para quantidade é inválido!")
+                return api_pb2.Reply(
+                    error=400,
+                    description=f"O valor informado para quantidade é inválido!",
+                )
 
             new_product = {
-                "PID": request.PID, 
-                "name": product_data["name"], 
-                "price": float(product_data["price"]), 
-                "quantity": int(product_data["quantity"])
+                "PID": request.PID,
+                "name": product_data["name"],
+                "price": float(product_data["price"]),
+                "quantity": int(product_data["quantity"]),
             }
             body = {
                 "op": "ADD",
@@ -144,18 +176,29 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             self.mqtt.publish("products", json.dumps(body))
             return api_pb2.Reply(error=0)
         except:
-            return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao criar o produto")
+            return api_pb2.Reply(
+                error=500, description=f"Ocorreu um erro ao criar o produto"
+            )
 
     def RetrieveProduct(self, request, _):
         try:
             product = self.get_product_by_id(request.ID)
             if product is None:
-                return api_pb2.Product(PID="", data="")
+                return api_pb2.Product(PID="0", data="")
                 # return api_pb2.Reply(error=404, description=f"Não há nenhum usuário com o ID {request.ID}")
 
-            return api_pb2.Product(PID=product["PID"], data=json.dumps({"nome": product["name"], "preço": product["price"], "quantidade": product["quantity"]}))
+            return api_pb2.Product(
+                PID=product["PID"],
+                data=json.dumps(
+                    {
+                        "nome": product["name"],
+                        "preço": product["price"],
+                        "quantidade": product["quantity"],
+                    }
+                ),
+            )
         except:
-            return api_pb2.Product(PID="", data="")
+            return api_pb2.Product(PID="0", data="")
             # return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao obter os dados do cliente")
 
     def get_product_by_id(self, product_id: str):
@@ -164,37 +207,51 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             if key == product_id:
                 return products[key]
         return None
-    
+
     def UpdateProduct(self, request, _):
         try:
             product = self.get_product_by_id(request.PID)
             if product is None:
-                return api_pb2.Reply(error=400, description=f"Não há nenhum usuário com o ID {request.PID}")
+                return api_pb2.Reply(
+                    error=400,
+                    description=f"Não há nenhum usuário com o ID {request.PID}",
+                )
 
             product_data = json.loads(request.data)
 
             # Validate values for price and quantity
             try:
                 price_float = float(product_data["price"])
-                if (price_float < 0):
-                    return api_pb2.Reply(error=400, description=f"O valor informado para preço é inválido!")
-                              
-            except ValueError:
-                    return api_pb2.Reply(error=400, description=f"O valor informado para preço é inválido!")
-            
-            try:
-                quantity_int = int(product_data["quantity"])
-                if (quantity_int < 0):
-                    return api_pb2.Reply(error=400, description=f"O valor informado para quantidade é inválido!")
+                if price_float < 0:
+                    return api_pb2.Reply(
+                        error=400,
+                        description=f"O valor informado para preço é inválido!",
+                    )
 
             except ValueError:
-                    return api_pb2.Reply(error=400, description=f"O valor informado para quantidade é inválido!")
+                return api_pb2.Reply(
+                    error=400, description=f"O valor informado para preço é inválido!"
+                )
+
+            try:
+                quantity_int = int(product_data["quantity"])
+                if quantity_int < 0:
+                    return api_pb2.Reply(
+                        error=400,
+                        description=f"O valor informado para quantidade é inválido!",
+                    )
+
+            except ValueError:
+                return api_pb2.Reply(
+                    error=400,
+                    description=f"O valor informado para quantidade é inválido!",
+                )
 
             product_data = {
                 "PID": request.PID,
                 "name": product_data["name"],
                 "price": float(product_data["price"]),
-                "quantity": int(product_data["quantity"])
+                "quantity": int(product_data["quantity"]),
             }
             body = {
                 "op": "UPDATE",
@@ -204,13 +261,18 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             self.mqtt.publish("products", json.dumps(body))
             return api_pb2.Reply(error=0)
         except:
-            return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao atualizar o produto")
-    
+            return api_pb2.Reply(
+                error=500, description=f"Ocorreu um erro ao atualizar o produto"
+            )
+
     def DeleteProduct(self, request, _):
         try:
             product = self.get_product_by_id(request.ID)
             if product is None:
-                return api_pb2.Reply(error=400, description=f"Não há nenhum produto com o ID {request.ID}")
+                return api_pb2.Reply(
+                    error=400,
+                    description=f"Não há nenhum produto com o ID {request.ID}",
+                )
             body = {
                 "op": "DELETE",
                 "key": request.ID,
@@ -219,7 +281,10 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Reply(error=0)
 
         except:
-            return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao deletar o produto")
+            return api_pb2.Reply(
+                error=500, description=f"Ocorreu um erro ao deletar o produto"
+            )
+
 
 def serve():
     if len(sys.argv) == 1:
@@ -273,7 +338,7 @@ def handle_mqtt_subscribe(mqtt):
             hash_map[msg.topic][result["key"]] = result["data"]
         elif result["op"] == "DELETE":
             del hash_map[msg.topic][result["key"]]
- 
+
         show_database()
 
     mqtt.subscribe("clients")
