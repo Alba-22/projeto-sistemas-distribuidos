@@ -27,5 +27,8 @@ disable = [
     "missing-class-docstring",
     "missing-function-docstring",
     "invalid-name",
-    "too-few-public-methods"
+    "too-few-public-methods",
+    "bare-except"
 ]
+
+generated_members = proto.api_pb2.*,proto.api_pb2_grpc.*
