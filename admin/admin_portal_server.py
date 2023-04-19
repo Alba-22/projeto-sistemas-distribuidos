@@ -62,7 +62,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
 
             return api_pb2.Client(CID=client["CID"], data=json.dumps({"nome": client["name"]}))
         except:
-            return api_pb2.Client(CID="", data="")
+            return api_pb2.Client(CID="0", data="")
             # return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao obter os dados do cliente")
 
     def get_client_by_id(self, client_id: str):
