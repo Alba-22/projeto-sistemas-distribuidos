@@ -148,5 +148,3 @@ def clear_screen():
 if __name__ == "__main__":
     logging.basicConfig()
     run()
-
-from proto import api_pb2, api_pb2_grpc

@@ -7,24 +7,10 @@ import grpc
 from paho.mqtt import client as mqtt_client
 
 from proto import api_pb2, api_pb2_grpc
+from utils.get_by_id import get_client_by_id, get_order_by_id, get_product_by_id
+from utils.on_receive_message import on_receive_message
 
-hash_map = {
-    "clients": {},
-    "products": {},
-    "orders": {},
-}
-
-
-def show_database():
-    print("> CLIENTES")
-    for key in hash_map["clients"]:
-        print(f"{key} -> {hash_map['clients'][key]}")
-    print("> PRODUTOS")
-    for key in hash_map["products"]:
-        print(f"{key} -> {hash_map['products'][key]}")
-    print("> PEDIDOS")
-    for key in hash_map["orders"]:
-        print(f"{key} -> {hash_map['orders'][key]}")
+hash_map = {"clients": {}, "products": {}, "orders": {}}
 
 
 class OrderPortal(api_pb2_grpc.OrderPortalServicer):
@@ -36,12 +22,12 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
     def CreateOrder(self, request, context):
         print("Creating Order", request.data)
         try:
-            client = self.get_client_by_id(request.CID)
+            client = get_client_by_id(hash_map, request.CID)
             if client is None:
                 return api_pb2.Reply(
                     error=404, description=f"Cliente não encontado: {request.CID}"
                 )
-            existing_order = self.get_order_by_id(request.OID)
+            existing_order = get_order_by_id(hash_map, request.OID)
             if existing_order is not None:
                 return api_pb2.Reply(
                     error=400, description=f"Já existe um pedido com o ID {request.OID}"
@@ -53,7 +39,7 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
             product_updates_to_publish = []
             for order_item in order_data:
                 # Verifica disponibilidade de produto e quantidade.
-                product = self.get_product_by_id(order_item["id"])
+                product = get_product_by_id(hash_map, order_item["id"])
                 if product is None:
                     return api_pb2.Reply(
                         error=404,
@@ -112,27 +98,6 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
     def RetrieveClientOrders(self, request, context):
         print("Retrieving client orders", request.data)
 
-    def get_client_by_id(self, client_id: str):
-        clients = hash_map["clients"]
-        for key in clients.keys():
-            if key == client_id:
-                return clients[key]
-        return None
-
-    def get_order_by_id(self, order_id: str):
-        orders = hash_map["orders"]
-        for key in orders:
-            if key == order_id:
-                return orders[key]
-        return None
-
-    def get_product_by_id(self, product_id: str):
-        products = hash_map["products"]
-        for key in products.keys():
-            if key == product_id:
-                return products[key]
-        return None
-
 
 def serve():
     if len(sys.argv) == 1:
@@ -143,22 +108,25 @@ def serve():
         print("O valor passado para a porta é inválido")
         return
 
-    mqtt = connect_mqtt
+    mqtt = connect_mqtt(port)
     handle_mqtt_subscribe(mqtt)
 
-    print("Iniciando servidor gRPC na porta " + port)
+    print(f"Iniciando servidor gRPC na porta {port}...")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    grpc.add_OrderPortalServicer_to_server(OrderPortal(mqtt), server)
+    api_pb2_grpc.add_OrderPortalServicer_to_server(OrderPortal(mqtt), server)
     server.add_insecure_port("[::]:" + port)
     server.start()
-    print("Servidor gRPC iniciado, ouvindo na porta " + port)
+    print("Servidor gRPC iniciado")
+
+    mqtt.loop_forever()
+
     server.wait_for_termination()
 
 
 def connect_mqtt(grpc_port):
-    print("Conectando ao Broker MQTT")
+    print("Conectando ao Broker MQTT...")
 
-    def on_connect(client, userdata, flags, rc):
+    def on_connect(_, __, ___, rc):
         if rc == 0:
             print("Conectado ao Broker MQTT!")
         else:
@@ -167,16 +135,13 @@ def connect_mqtt(grpc_port):
 
     client = mqtt_client.Client("projeto-mqtt-" + grpc_port)
     client.on_connect = on_connect
-    client.connect("localhost", 1883)
+    client.connect("localhost", 1884)
     return client
 
 
 def handle_mqtt_subscribe(mqtt):
     def on_subscribe_message(__, ___, msg):
-        print(f"[TÓPICO = {msg.topic}] Mensagem recebida {msg.payload.decode()}")
-        result = json.loads(msg.payload.decode())
-        hash_map[msg.topic].append(result)
-        print(hash_map)
+        on_receive_message(hash_map, msg)
 
     mqtt.subscribe("clients")
     mqtt.subscribe("products")

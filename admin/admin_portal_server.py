@@ -7,6 +7,8 @@ import grpc
 from paho.mqtt import client as mqtt_client
 
 from proto import api_pb2, api_pb2_grpc
+from utils.get_by_id import get_client_by_id, get_product_by_id
+from utils.on_receive_message import on_receive_message
 
 # Operations on HashMap should follow this model:
 # {
@@ -18,18 +20,6 @@ from proto import api_pb2, api_pb2_grpc
 hash_map = {"clients": {}, "products": {}, "orders": {}}
 
 
-def show_database():
-    print("> CLIENTES")
-    for key in hash_map["clients"].keys():
-        print(f"{key} -> {hash_map['clients'][key]}")
-    print("> PRODUTOS")
-    for key in hash_map["products"].keys():
-        print(f"{key} -> {hash_map['products'][key]}")
-    print("> PEDIDOS")
-    for key in hash_map["orders"].keys():
-        print(f"{key} -> {hash_map['orders'][key]}")
-
-
 class AdminPortal(api_pb2_grpc.AdminPortalServicer):
     """Provide methods that implement functionality of Admin Portal Server"""
 
@@ -38,7 +28,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
 
     def CreateClient(self, request, _):
         try:
-            client = self.get_client_by_id(request.CID)
+            client = get_client_by_id(hash_map, request.CID)
             if client is not None:
                 return api_pb2.Reply(
                     error=400,
@@ -56,33 +46,24 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Reply(error=0)
         except:
             return api_pb2.Reply(
-                error=500, description=f"Ocorreu um erro ao criar o cliente"
+                error=500, description="Ocorreu um erro ao criar o cliente"
             )
 
     def RetrieveClient(self, request, _):
         try:
-            client = self.get_client_by_id(request.ID)
+            client = get_client_by_id(hash_map, request.ID)
             if client is None:
                 return api_pb2.Client(CID="0", data="")
-                # return api_pb2.Reply(error=404, description=f"Não há nenhum usuário com o ID {request.ID}")
 
             return api_pb2.Client(
                 CID=client["CID"], data=json.dumps({"nome": client["name"]})
             )
         except:
             return api_pb2.Client(CID="0", data="")
-            # return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao obter os dados do cliente")
-
-    def get_client_by_id(self, client_id: str):
-        clients = hash_map["clients"]
-        for key in clients.keys():
-            if key == client_id:
-                return clients[key]
-        return None
 
     def UpdateClient(self, request, _):
         try:
-            client = self.get_client_by_id(request.CID)
+            client = get_client_by_id(hash_map, request.CID)
             if client is None:
                 return api_pb2.Reply(
                     error=400,
@@ -100,12 +81,12 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Reply(error=0)
         except:
             return api_pb2.Reply(
-                error=500, description=f"Ocorreu um erro ao atualizar o cliente"
+                error=500, description="Ocorreu um erro ao atualizar o cliente"
             )
 
     def DeleteClient(self, request, _):
         try:
-            client = self.get_client_by_id(request.ID)
+            client = get_client_by_id(hash_map, request.ID)
             if client is None:
                 return api_pb2.Reply(
                     error=400,
@@ -120,12 +101,12 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
 
         except:
             return api_pb2.Reply(
-                error=500, description=f"Ocorreu um erro ao deletar o cliente"
+                error=500, description="Ocorreu um erro ao deletar o cliente"
             )
 
     def CreateProduct(self, request, _):
         try:
-            product = self.get_product_by_id(request.PID)
+            product = get_product_by_id(hash_map, request.PID)
             if product is not None:
                 return api_pb2.Reply(
                     error=400,
@@ -140,12 +121,12 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                 if price_float < 0:
                     return api_pb2.Reply(
                         error=400,
-                        description=f"O valor informado para preço é inválido!",
+                        description="O valor informado para preço é inválido!",
                     )
 
             except ValueError:
                 return api_pb2.Reply(
-                    error=400, description=f"O valor informado para preço é inválido!"
+                    error=400, description="O valor informado para preço é inválido!"
                 )
 
             try:
@@ -153,13 +134,13 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                 if quantity_int < 0:
                     return api_pb2.Reply(
                         error=400,
-                        description=f"O valor informado para quantidade é inválido!",
+                        description="O valor informado para quantidade é inválido!",
                     )
 
             except ValueError:
                 return api_pb2.Reply(
                     error=400,
-                    description=f"O valor informado para quantidade é inválido!",
+                    description="O valor informado para quantidade é inválido!",
                 )
 
             new_product = {
@@ -177,15 +158,14 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Reply(error=0)
         except:
             return api_pb2.Reply(
-                error=500, description=f"Ocorreu um erro ao criar o produto"
+                error=500, description="Ocorreu um erro ao criar o produto"
             )
 
     def RetrieveProduct(self, request, _):
         try:
-            product = self.get_product_by_id(request.ID)
+            product = get_product_by_id(hash_map, request.ID)
             if product is None:
                 return api_pb2.Product(PID="0", data="")
-                # return api_pb2.Reply(error=404, description=f"Não há nenhum usuário com o ID {request.ID}")
 
             return api_pb2.Product(
                 PID=product["PID"],
@@ -199,18 +179,10 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             )
         except:
             return api_pb2.Product(PID="0", data="")
-            # return api_pb2.Reply(error=500, description=f"Ocorreu um erro ao obter os dados do cliente")
-
-    def get_product_by_id(self, product_id: str):
-        products = hash_map["products"]
-        for key in products.keys():
-            if key == product_id:
-                return products[key]
-        return None
 
     def UpdateProduct(self, request, _):
         try:
-            product = self.get_product_by_id(request.PID)
+            product = get_product_by_id(hash_map, request.PID)
             if product is None:
                 return api_pb2.Reply(
                     error=400,
@@ -225,12 +197,12 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                 if price_float < 0:
                     return api_pb2.Reply(
                         error=400,
-                        description=f"O valor informado para preço é inválido!",
+                        description="O valor informado para preço é inválido!",
                     )
 
             except ValueError:
                 return api_pb2.Reply(
-                    error=400, description=f"O valor informado para preço é inválido!"
+                    error=400, description="O valor informado para preço é inválido!"
                 )
 
             try:
@@ -238,13 +210,13 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                 if quantity_int < 0:
                     return api_pb2.Reply(
                         error=400,
-                        description=f"O valor informado para quantidade é inválido!",
+                        description="O valor informado para quantidade é inválido!",
                     )
 
             except ValueError:
                 return api_pb2.Reply(
                     error=400,
-                    description=f"O valor informado para quantidade é inválido!",
+                    description="O valor informado para quantidade é inválido!",
                 )
 
             product_data = {
@@ -262,12 +234,12 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Reply(error=0)
         except:
             return api_pb2.Reply(
-                error=500, description=f"Ocorreu um erro ao atualizar o produto"
+                error=500, description="Ocorreu um erro ao atualizar o produto"
             )
 
     def DeleteProduct(self, request, _):
         try:
-            product = self.get_product_by_id(request.ID)
+            product = get_product_by_id(hash_map, request.ID)
             if product is None:
                 return api_pb2.Reply(
                     error=400,
@@ -282,7 +254,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
 
         except:
             return api_pb2.Reply(
-                error=500, description=f"Ocorreu um erro ao deletar o produto"
+                error=500, description="Ocorreu um erro ao deletar o produto"
             )
 
 
@@ -300,12 +272,12 @@ def serve():
     mqtt = connect_mqtt(port)
     handle_mqtt_subscribe(mqtt)
 
-    print("Iniciando servidor gRPC na porta " + port)
+    print(f"Iniciando servidor gRPC na porta {port}...")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     api_pb2_grpc.add_AdminPortalServicer_to_server(AdminPortal(mqtt), server)
     server.add_insecure_port("[::]:" + port)
     server.start()
-    print("Servidor gRPC iniciado")
+    print("Servidor gRPC iniciado!")
 
     mqtt.loop_forever()
 
@@ -313,33 +285,23 @@ def serve():
 
 
 def connect_mqtt(grpc_port):
-    print("Conectando ao Broker MQTT")
+    print("Conectando ao Broker MQTT...")
 
-    def on_connect(client, userdata, flags, rc):
+    def on_connect(_, __, ___, rc):
         if rc == 0:
             print("Conectado ao Broker MQTT!")
         else:
-            print("Falha ao conectar ao Broker MQTT(código %d\n", rc + ")")
-            exit
+            print(f"Falha ao conectar ao Broker MQTT(código {rc})")
 
     client = mqtt_client.Client("projeto-mqtt-" + grpc_port)
     client.on_connect = on_connect
-    client.connect("localhost", 1883)
+    client.connect("localhost", 1884)
     return client
 
 
 def handle_mqtt_subscribe(mqtt):
     def on_subscribe_message(__, ___, msg):
-        print(f"[TÓPICO = {msg.topic}] Mensagem recebida: {msg.payload.decode()}")
-        result = json.loads(msg.payload.decode())
-        if result["op"] == "ADD":
-            hash_map[msg.topic][result["key"]] = result["data"]
-        elif result["op"] == "UPDATE":
-            hash_map[msg.topic][result["key"]] = result["data"]
-        elif result["op"] == "DELETE":
-            del hash_map[msg.topic][result["key"]]
-
-        show_database()
+        on_receive_message(hash_map, msg)
 
     mqtt.subscribe("clients")
     mqtt.subscribe("products")
