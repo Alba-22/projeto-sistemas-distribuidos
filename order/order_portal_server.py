@@ -20,7 +20,6 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
         self.mqtt = mqtt
 
     def CreateOrder(self, request, context):
-        print("Creating Order", request.data)
         try:
             client = get_client_by_id(hash_map, request.CID)
             if client is None:
@@ -37,6 +36,7 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
             order_data: list[dict] = json.loads(request.data)
 
             product_updates_to_publish = []
+            order_products = []
             for order_item in order_data:
                 # Verifica disponibilidade de produto e quantidade.
                 product = get_product_by_id(hash_map, order_item["id"])
@@ -68,19 +68,49 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
                 # Ajusta quantidade disponível de produto, se necessário.
                 product_updates_to_publish.append(
                     {
-                        "op": "UPDATE",
-                        "key": product["id"],
-                        "data": {
-                            "PID": product["id"],
-                            "name": product["name"],
-                            "price": product["price"],
-                            "quantity": product["quantity"] - quantity_int,
-                        },
+                        "PID": product["PID"],
+                        "name": product["name"],
+                        "price": product["price"],
+                        "quantity": product["quantity"] - quantity_int,
+                    }
+                )
+                order_products.append(
+                    {
+                        "PID": product["PID"],
+                        "price": product["price"],
+                        "quantity": quantity_int,
                     }
                 )
 
-            # Executa a operação e retorna código de erro/sucesso.
-            # TODO
+            for update_data in product_updates_to_publish:
+                self.mqtt.publish(
+                    "products",
+                    json.dumps(
+                        {
+                            "op": "UPDATE",
+                            "key": update_data["PID"],
+                            "data": update_data,
+                        }
+                    ),
+                )
+
+            # Cria o pedido
+            self.mqtt.publish(
+                "orders",
+                json.dumps(
+                    {
+                        "op": "ADD",
+                        "key": request.OID,
+                        "data": {
+                            "OID": request.OID,
+                            "CID": request.CID,
+                            "products": order_products,
+                        },
+                    }
+                ),
+            )
+
+            return api_pb2.Reply(error=0)
         except:
             return api_pb2.Reply(
                 error=500, description="Ocorreu um erro ao criar o pedido"
@@ -93,7 +123,52 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
         print("Updating Order", request.data)
 
     def DeleteOrder(self, request, context):
-        print("Deleting Order", request.data)
+        # VOLTAR A QUANTIDADE DOS ITENS DO PEDIDO
+        try:
+            order = get_order_by_id(hash_map, request.ID)
+            if order is None:
+                return api_pb2.Reply(
+                    error=400,
+                    description=f"Não há nenhum pedido com o ID {request.ID}",
+                )
+
+            # Voltar a quantidade dos produtos no hash_map, caso o pedido tenha produtos
+            for deleting_product in order["products"]:
+                original_product = get_product_by_id(hash_map, deleting_product["PID"])
+                updated_product = {
+                    "PID": original_product["PID"],
+                    "name": original_product["name"],
+                    "price": original_product["price"],
+                    "quantity": original_product["quantity"]
+                    + deleting_product["quantity"],
+                }
+                self.mqtt.publish(
+                    "products",
+                    json.dumps(
+                        {
+                            "op": "UPDATE",
+                            "key": deleting_product["PID"],
+                            "data": updated_product,
+                        }
+                    ),
+                )
+
+            # Deletar pedido
+            self.mqtt.publish(
+                "orders",
+                json.dumps(
+                    {
+                        "op": "DELETE",
+                        "key": request.ID,
+                    }
+                ),
+            )
+            return api_pb2.Reply(error=0)
+
+        except:
+            return api_pb2.Reply(
+                error=500, description="Ocorreu um erro ao deletar o pedido"
+            )
 
     def RetrieveClientOrders(self, request, context):
         print("Retrieving client orders", request.data)

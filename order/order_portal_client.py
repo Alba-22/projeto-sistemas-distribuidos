@@ -44,7 +44,6 @@ def run():
             print("========================")
             print("> Criar novo pedido")
             order_id = input("Digite o ID do pedido: ")
-            client_id = input("Digite o ID do cliente: ")
             products = []
             has_products = input("Deseja adicionar produtos ao pedido? [S/N]")
             if has_products == "S":
@@ -60,7 +59,7 @@ def run():
                     if keep_adding_products == "N":
                         break
             result = stub.CreateOrder(
-                api_pb2.Order(OID=order_id, CID=client_id, data=json.dumps(products))
+                api_pb2.Order(OID=order_id, CID=cid, data=json.dumps(products))
             )
             if result.error == 0:
                 print("Pedido criado com sucesso!")
