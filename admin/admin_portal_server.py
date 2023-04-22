@@ -146,8 +146,8 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             new_product = {
                 "PID": request.PID,
                 "name": product_data["name"],
-                "price": float(product_data["price"]),
-                "quantity": int(product_data["quantity"]),
+                "price": str(product_data["price"]),
+                "quantity": str(product_data["quantity"]),
             }
             body = {
                 "op": "ADD",
@@ -189,6 +189,12 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                     description=f"Não há nenhum usuário com o ID {request.PID}",
                 )
 
+            if self.check_if_product_is_in_some_order(product["PID"]):
+                return api_pb2.Reply(
+                    error=400,
+                    description="Não é possível atualizar o produto, pois ele já está presente em um pedido",
+                )
+
             product_data = json.loads(request.data)
 
             # Validate values for price and quantity
@@ -222,8 +228,8 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             product_data = {
                 "PID": request.PID,
                 "name": product_data["name"],
-                "price": float(product_data["price"]),
-                "quantity": int(product_data["quantity"]),
+                "price": str(product_data["price"]),
+                "quantity": str(product_data["quantity"]),
             }
             body = {
                 "op": "UPDATE",
@@ -245,6 +251,13 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                     error=400,
                     description=f"Não há nenhum produto com o ID {request.ID}",
                 )
+
+            if self.check_if_product_is_in_some_order(product["PID"]):
+                return api_pb2.Reply(
+                    error=400,
+                    description="Não é possível remover o produto, pois ele já está presente em um pedido",
+                )
+
             body = {
                 "op": "DELETE",
                 "key": request.ID,
@@ -256,6 +269,17 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Reply(
                 error=500, description="Ocorreu um erro ao deletar o produto"
             )
+
+    def check_if_product_is_in_some_order(self, pid: str):
+        is_present_in_some_order = False
+        for _, order in hash_map["orders"].items():
+            for order_product in order["products"]:
+                if order_product["PID"] == pid:
+                    is_present_in_some_order = True
+                    break
+            if is_present_in_some_order:
+                break
+        return is_present_in_some_order
 
 
 def serve():

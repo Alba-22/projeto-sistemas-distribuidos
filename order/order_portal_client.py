@@ -44,22 +44,22 @@ def run():
             print("========================")
             print("> Criar novo pedido")
             order_id = input("Digite o ID do pedido: ")
-            products = []
-            has_products = input("Deseja adicionar produtos ao pedido? [S/N]")
-            if has_products == "S":
+            data = []
+            will_update_products = input("Deseja adicionar produtos ao pedido? [S/N] ")
+            if will_update_products == "S":
                 product_index = 1
                 print(f"Digite os dados do {product_index}o produto:")
                 while True:
                     product_id = input("Digite o ID do produto: ")
                     product_quantity = input("Digite a quantidade que deseja comprar: ")
-                    products.append({"id": product_id, "quantity": product_quantity})
-                    keep_adding_products = input(
+                    data.append({"id": product_id, "quantity": product_quantity})
+                    keep_updating_products = input(
                         "Deseja adicionar mais um pedido? [S/N]"
                     )
-                    if keep_adding_products == "N":
+                    if keep_updating_products == "N":
                         break
             result = stub.CreateOrder(
-                api_pb2.Order(OID=order_id, CID=cid, data=json.dumps(products))
+                api_pb2.Order(OID=order_id, CID=cid, data=json.dumps(data))
             )
             if result.error == 0:
                 print("Pedido criado com sucesso!")
@@ -75,18 +75,49 @@ def run():
             result = stub.RetrieveOrder(api_pb2.ID(ID=order_id))
             if result.OID == 0:
                 print("Não há nenhum pedido com o ID digitado")
-            if not isinstance(result.data, list):
+            data = json.loads(result.data)
+            if not isinstance(data["products"], list):
                 print("Ocorreu um erro")
-            products = json.loads(result.data)
-            if len(products) == 0:
+            elif len(data) == 0:
                 print("O pedido ainda não possui nenhum produto adicionado")
             else:
-                for product in products:
+                print("--------------------------------")
+                print(f"Produtos do pedido {order_id}: ")
+                print("--------------------------------")
+                for product in data["products"]:
                     for key, value in product.items():
                         print(f"[-] {key}: {value}")
+                    print("--------------------------------")
             end_of_option()
         elif option == "3":
-            print("3")
+            clear_screen()
+            print("========================")
+            print("> Atualizar Pedido")
+            order_id = input("Digite o ID do pedido: ")
+            data = []
+            will_update_products = input(
+                "Deseja alterar algum produto do pedido? [S/N] "
+            )
+            if will_update_products == "S":
+                while True:
+                    product_id = input("Digite o ID do produto: ")
+                    product_quantity = input(
+                        "Digite a nova quantidade[0 = deletar produto]: "
+                    )
+                    data.append({"id": product_id, "quantity": product_quantity})
+                    keep_updating_products = input(
+                        "Deseja adicionar mais um pedido? [S/N]"
+                    )
+                    if keep_updating_products == "N":
+                        break
+            result = stub.UpdateOrder(
+                api_pb2.Order(OID=order_id, CID=cid, data=json.dumps(data))
+            )
+            if result.error == 0:
+                print("Pedido alterado com sucesso!")
+            else:
+                print(f"Erro: {result.description}")
+            end_of_option()
         elif option == "4":
             clear_screen()
             print("========================")
@@ -103,8 +134,20 @@ def run():
             print("========================")
             print("> Meus pedidos")
             result = stub.RetrieveClientOrders(api_pb2.ID(ID=cid))
-            # Como tratar o stream
-            # Testar interfaces
+            has_orders = False
+            for order in result:
+                has_orders = True
+                data = json.loads(order.data)
+                print(f"PEDIDO {order.OID}")
+                for product in data["products"]:
+                    print(
+                        f"[{product['PID']}] {product['name']}(x{product['quantity']}) - ${product['price']}"
+                    )
+                print("--------------------------------")
+            if not has_orders:
+                print(f"Não há nenhum pedido para o cliente de ID {cid}")
+
+            end_of_option()
 
         elif option == "6":
             clear_screen()

@@ -32,7 +32,7 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
                     error=400, description=f"Já existe um pedido com o ID {request.OID}"
                 )
 
-            # request.data: json encoded list [{"id": ... , "quantity": str}]
+            # request.data: json encoded list [{"id": ... , "quantity": str}, ...]
             order_data: list[dict] = json.loads(request.data)
 
             product_updates_to_publish = []
@@ -59,7 +59,7 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
                         description="O valor informado para quantidade é inválido!",
                     )
 
-                if product["quantity"] < quantity_int:
+                if int(product["quantity"]) < quantity_int:
                     return api_pb2.Reply(
                         error=400,
                         description=f"Quantidade indisponível de produto com ID {product['id']}",
@@ -71,14 +71,14 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
                         "PID": product["PID"],
                         "name": product["name"],
                         "price": product["price"],
-                        "quantity": product["quantity"] - quantity_int,
+                        "quantity": str(int(product["quantity"]) - quantity_int),
                     }
                 )
                 order_products.append(
                     {
                         "PID": product["PID"],
                         "price": product["price"],
-                        "quantity": quantity_int,
+                        "quantity": str(quantity_int),
                     }
                 )
 
@@ -117,13 +117,203 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
             )
 
     def RetrieveOrder(self, request, context):
-        print("Retrieving Order", request.data)
+        try:
+            order = get_order_by_id(hash_map, request.ID)
+            if order is None:
+                raise ValueError()
+
+            named_products = []
+            for order_product in order["products"]:
+                product = get_product_by_id(hash_map, order_product["PID"])
+                if product is None:
+                    raise ValueError()
+                named_products.append({**order_product, "name": product["name"]})
+
+            return api_pb2.Order(
+                OID=order["OID"],
+                CID=order["CID"],
+                data=json.dumps({"products": named_products}),
+            )
+        except:
+            return api_pb2.Order(OID="0", CID="0", data="")
 
     def UpdateOrder(self, request, context):
-        print("Updating Order", request.data)
+        try:
+            client = get_client_by_id(hash_map, request.CID)
+            if client is None:
+                return api_pb2.Reply(
+                    error=404, description=f"Cliente não encontado: {request.CID}"
+                )
+            order = get_order_by_id(hash_map, request.OID)
+            if order is None or order["CID"] != client["CID"]:
+                return api_pb2.Reply(
+                    error=404, description=f"Pedido não encontado: {request.OID}"
+                )
+
+            # request.data: json encoded list [{"id": str , "quantity": str}, ...]
+            request_data: list[dict] = json.loads(request.data)
+            # Trata dois itens na lista com mesmo PID
+            order_updates_dict = {}
+            for product_order in request_data:
+                if order_updates_dict.get(product_order["id"], None) is None:
+                    order_updates_dict[product_order["id"]] = product_order
+                else:
+                    order_updates_dict[product_order["id"]]["quantity"] = str(
+                        int(order_updates_dict[product_order["id"]]["quantity"])
+                        + int(product_order["quantity"])
+                    )
+
+            final_order_products = []
+            product_updates_to_publish = []
+
+            # Trata atualizações de produtos que já estão naquele pedido
+            # (atualizações de quantidade e remoção)
+            for order_product in order["products"]:
+                new_order_product = order_updates_dict.get(order_product["PID"], None)
+
+                if new_order_product is None:
+                    # produto no pedido original não será alterado
+                    final_order_products.append(order_product)
+                    continue
+
+                # Contabiliza que aquela atualização já será processada
+                # (Sobrarão nesse dicionário as atualizações de adição de novos itens,
+                # que serão tratadas posteriormente)
+                del order_updates_dict[order_product["PID"]]
+
+                # TODO: impedir modificações quando o preço entre a tabela de orders e products
+
+                # se a quantidade for "0", aquele produto é retirado da lista
+                # (mas o resto das tratativas acontece do mesmo jeito)
+                if new_order_product["quantity"] != "0":
+                    final_order_products.append(
+                        {
+                            "PID": order_product["PID"],
+                            "price": order_product["price"],
+                            "quantity": new_order_product["quantity"],
+                        }
+                    )
+
+                # Trata atualizações quantidade produtos
+                product_updates_to_publish.append(
+                    self.propagate_product_updates(
+                        product_pid=order_product["PID"],
+                        current_order_quantity=order_product["quantity"],
+                        new_order_quantity=new_order_product["quantity"],
+                    )
+                )
+
+            # Trata inserção de novos produtos no pedido
+            for _, order_product in order_updates_dict.items():
+                if order_product["quantity"] != "0":
+                    product = get_product_by_id(hash_map, order_product["id"])
+                    if product is None:
+                        return api_pb2.Reply(
+                            error=404,
+                            description=f"Produto não encontado: {order_product['id']}",
+                        )
+
+                    final_order_products.append(
+                        {
+                            "PID": product["PID"],
+                            "price": product["price"],
+                            "quantity": order_product["quantity"],
+                        }
+                    )
+
+                    # Trata atualizações quantidade produtos
+                    product_updates_to_publish.append(
+                        self.propagate_product_updates(
+                            product_pid=order_product["id"],
+                            current_order_quantity="0",
+                            new_order_quantity=order_product["quantity"],
+                        )
+                    )
+
+            # Atualiza ordem
+            self.mqtt.publish(
+                "orders",
+                json.dumps(
+                    {
+                        "op": "UPDATE",
+                        "key": request.OID,
+                        "data": {
+                            "OID": request.OID,
+                            "CID": request.CID,
+                            "products": final_order_products,
+                        },
+                    }
+                ),
+            )
+
+            # Atualiza produtos
+            for update_data in product_updates_to_publish:
+                self.mqtt.publish(
+                    "products",
+                    json.dumps(
+                        {
+                            "op": "UPDATE",
+                            "key": update_data["PID"],
+                            "data": update_data,
+                        }
+                    ),
+                )
+
+            return api_pb2.Reply(error=0)
+
+        except Exception as e:
+            print(e)
+            return api_pb2.Reply(
+                error=500, description="Ocorreu um erro ao editar o pedido"
+            )
+
+    def propagate_product_updates(
+        self,
+        product_pid: str,
+        current_order_quantity: str,
+        new_order_quantity: str,
+    ) -> dict:
+        """
+        Propaga alterações nas quantidades de produtos de acordo com as
+        alterações dos pedidos.
+
+        Retorna entrada atualizada na tabela de Products
+        """
+        product = get_product_by_id(hash_map, product_pid)
+        if product is None:
+            return api_pb2.Reply(
+                error=404,
+                description=f"Produto não encontado: {product_pid}",
+            )
+
+        # typecasts
+        try:
+            new_o_product_quantity_int = int(new_order_quantity)
+            order_product_quantity = int(current_order_quantity)
+            current_product_quantity = int(product["quantity"])
+        except ValueError:
+            return api_pb2.Reply(
+                error=400,
+                description="O valor informado para quantidade é inválido!",
+            )
+
+        amount_to_add = order_product_quantity - new_o_product_quantity_int
+        if current_product_quantity + amount_to_add < 0:
+            return api_pb2.Reply(
+                error=400,
+                description=f"Produto indisponível para operação: {product_pid}",
+            )
+
+        return {
+            "PID": product["PID"],
+            "name": product["name"],
+            "price": product["price"],
+            "quantity": str(current_product_quantity + amount_to_add),
+        }
 
     def DeleteOrder(self, request, context):
         # VOLTAR A QUANTIDADE DOS ITENS DO PEDIDO
+        # TODO: tratativa delete product
         try:
             order = get_order_by_id(hash_map, request.ID)
             if order is None:
@@ -171,7 +361,29 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
             )
 
     def RetrieveClientOrders(self, request, context):
-        print("Retrieving client orders", request.data)
+        try:
+            if get_client_by_id(hash_map, request.ID) is None:
+                yield
+
+            client_id = request.ID
+            for _, order in hash_map["orders"].items():
+                if order["CID"] == client_id:
+                    named_products = []
+                    for order_product in order["products"]:
+                        product = get_product_by_id(hash_map, order_product["PID"])
+                        if product is None:
+                            raise ValueError()
+                        named_products.append(
+                            {**order_product, "name": product["name"]}
+                        )
+
+                    yield api_pb2.Order(
+                        OID=order["OID"],
+                        CID=order["CID"],
+                        data=json.dumps({"products": named_products}),
+                    )
+        except:
+            yield
 
 
 def serve():
