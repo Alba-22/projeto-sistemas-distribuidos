@@ -29,7 +29,9 @@ def run():
         channel = grpc.insecure_channel(f"localhost:{port}")
         stub = api_pb2_grpc.AdminPortalStub(channel)
     except:
-        print("Ocorreu um erro ao conectar ao servidor! Verifique se a porta está correta!")
+        print(
+            "Ocorreu um erro ao conectar ao servidor! Verifique se a porta está correta!"
+        )
         return
 
     keep = True
@@ -42,7 +44,9 @@ def run():
             print("> Adição de Novo Cliente")
             client_id = input("Digite o id do novo cliente: ")
             client_name = input("Digite o nome do cliente: ")
-            result = stub.CreateClient(api_pb2.Client(CID=client_id, data=json.dumps({"name": client_name})))
+            result = stub.CreateClient(
+                api_pb2.Client(CID=client_id, data=json.dumps({"name": client_name}))
+            )
             if result.error == 0:
                 print("Cliente adicionado com sucesso!")
             else:
@@ -59,7 +63,7 @@ def run():
                 data = json.loads(result.data)
                 for key, value in data.items():
                     print(f"[-] {key}: {value}")
-                    
+
             else:
                 print(f"Erro: Não há nenhum cliente com o ID {client_id}")
             end_of_option()
@@ -69,7 +73,9 @@ def run():
             print("> Atualização de Cliente")
             client_id = input("Digite o id do cliente: ")
             client_name = input("Digite o novo nome do cliente: ")
-            result = stub.UpdateClient(api_pb2.Client(CID=client_id, data=json.dumps({"name": client_name})))
+            result = stub.UpdateClient(
+                api_pb2.Client(CID=client_id, data=json.dumps({"name": client_name}))
+            )
             if result.error == 0:
                 print("Cliente atualizado com sucesso!")
             else:
@@ -94,11 +100,18 @@ def run():
             product_name = input("Digite o nome do produto: ")
             product_price = input("Digite o preço do produto: ")
             product_quantity = input("Digite a quantidade do produto: ")
-            result = stub.CreateProduct(api_pb2.Product(PID=product_id, data=json.dumps({
-                "name": product_name,
-                "price": product_price,
-                "quantity": product_quantity,
-            })))
+            result = stub.CreateProduct(
+                api_pb2.Product(
+                    PID=product_id,
+                    data=json.dumps(
+                        {
+                            "name": product_name,
+                            "price": product_price,
+                            "quantity": product_quantity,
+                        }
+                    ),
+                )
+            )
             if result.error == 0:
                 print("Produto adicionado com sucesso!")
             else:
@@ -115,7 +128,7 @@ def run():
                 data = json.loads(result.data)
                 for key, value in data.items():
                     print(f"[-] {key}: {value}")
-                    
+
             else:
                 print(f"Erro: Não há nenhum produto com o ID {product_id}")
             end_of_option()
@@ -127,7 +140,18 @@ def run():
             product_name = input("Digite o novo nome do produto: ")
             product_price = input("Digite o preço do produto: ")
             product_quantity = input("Digite a quantidade do produto: ")
-            result = stub.UpdateProduct(api_pb2.Product(PID=product_id, data=json.dumps({"name": product_name, "price": product_price, "quantity": product_quantity})))
+            result = stub.UpdateProduct(
+                api_pb2.Product(
+                    PID=product_id,
+                    data=json.dumps(
+                        {
+                            "name": product_name,
+                            "price": product_price,
+                            "quantity": product_quantity,
+                        },
+                    ),
+                ),
+            )
             if result.error == 0:
                 print("Produto atualizado com sucesso!")
             else:
@@ -175,8 +199,10 @@ def get_menu_option():
 def end_of_option():
     input("Pressione qualquer tecla para continuar!")
 
+
 def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
+
 
 if __name__ == "__main__":
     logging.basicConfig()

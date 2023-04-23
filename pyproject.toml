@@ -11,6 +11,7 @@ python = "^3.10"
 paho-mqtt = "^1.6.1"
 grpcio = "^1.53.0"
 grpcio-tools = "^1.53.0"
+pydantic = "^1.10.7"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -30,5 +31,7 @@ disable = [
     "too-few-public-methods",
     "bare-except"
 ]
-
-generated_members = proto.api_pb2.*,proto.api_pb2_grpc.*
+extension-pkg-allow-list = [
+    "pydantic"
+]
+generated-members="api_pb2_grpc.*,api_pb2.*,grpc.*"
