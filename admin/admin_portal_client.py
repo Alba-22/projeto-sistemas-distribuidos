@@ -123,7 +123,7 @@ def run():
             print("> Obter Produto")
             product_id = input("Digite o id do produto: ")
             result = stub.RetrieveProduct(api_pb2.ID(ID=product_id))
-            if len(result.PID) != 0:
+            if result.PID != "0":
                 print(f"[-] ID: {result.PID}")
                 data = json.loads(result.data)
                 for key, value in data.items():

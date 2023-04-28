@@ -2,6 +2,7 @@ import json
 import logging
 import sys
 from concurrent import futures
+import traceback
 
 import grpc
 from paho.mqtt import client as mqtt_client
@@ -35,9 +36,20 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
             # request.data: json encoded list [{"id": ... , "quantity": str}, ...]
             order_data: list[dict] = json.loads(request.data)
 
+            # Trata dois itens na lista com mesmo PID
+            order_data_dict = {}
+            for order_item in order_data:
+                if order_data_dict.get(order_item["id"], None) is None:
+                    order_data_dict[order_item["id"]] = order_item
+                else:
+                    order_data_dict[order_item["id"]]["quantity"] = str(
+                        int(order_data_dict[order_item["id"]]["quantity"])
+                        + int(order_item["quantity"])
+                    )
+
             product_updates_to_publish = []
             order_products = []
-            for order_item in order_data:
+            for _, order_item in order_data_dict.items():
                 # Verifica disponibilidade de produto e quantidade.
                 product = get_product_by_id(hash_map, order_item["id"])
                 if product is None:
@@ -62,7 +74,7 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
                 if int(product["quantity"]) < quantity_int:
                     return api_pb2.Reply(
                         error=400,
-                        description=f"Quantidade indisponível de produto com ID {product['id']}",
+                        description=f"Quantidade indisponível de produto com ID {product['PID']}",
                     )
 
                 # Ajusta quantidade disponível de produto, se necessário.
@@ -112,6 +124,7 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
 
             return api_pb2.Reply(error=0)
         except:
+            traceback.print_exc()
             return api_pb2.Reply(
                 error=500, description="Ocorreu um erro ao criar o pedido"
             )
@@ -135,6 +148,7 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
                 data=json.dumps({"products": named_products}),
             )
         except:
+            traceback.print_exc()
             return api_pb2.Order(OID="0", CID="0", data="")
 
     def UpdateOrder(self, request, context):
@@ -195,13 +209,14 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
                     )
 
                 # Trata atualizações quantidade produtos
-                product_updates_to_publish.append(
-                    self.propagate_product_updates(
-                        product_pid=order_product["PID"],
-                        current_order_quantity=order_product["quantity"],
-                        new_order_quantity=new_order_product["quantity"],
-                    )
+                propagation = self.propagate_product_updates(
+                    product_pid=order_product["PID"],
+                    current_order_quantity=order_product["quantity"],
+                    new_order_quantity=new_order_product["quantity"],
                 )
+                if isinstance(propagation, api_pb2.Reply):
+                    return propagation
+                product_updates_to_publish.append(propagation)
 
             # Trata inserção de novos produtos no pedido
             for _, order_product in order_updates_dict.items():
@@ -222,13 +237,14 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
                     )
 
                     # Trata atualizações quantidade produtos
-                    product_updates_to_publish.append(
-                        self.propagate_product_updates(
-                            product_pid=order_product["id"],
-                            current_order_quantity="0",
-                            new_order_quantity=order_product["quantity"],
-                        )
+                    propagation = self.propagate_product_updates(
+                        product_pid=order_product["id"],
+                        current_order_quantity="0",
+                        new_order_quantity=order_product["quantity"],
                     )
+                    if isinstance(propagation, api_pb2.Reply):
+                        return propagation
+                    product_updates_to_publish.append(propagation)
 
             # Atualiza ordem
             self.mqtt.publish(
@@ -261,8 +277,8 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
 
             return api_pb2.Reply(error=0)
 
-        except Exception as e:
-            print(e)
+        except:
+            traceback.print_exc()
             return api_pb2.Reply(
                 error=500, description="Ocorreu um erro ao editar o pedido"
             )
@@ -329,8 +345,10 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
                     "PID": original_product["PID"],
                     "name": original_product["name"],
                     "price": original_product["price"],
-                    "quantity": original_product["quantity"]
-                    + deleting_product["quantity"],
+                    "quantity": str(
+                        int(original_product["quantity"])
+                        + int(deleting_product["quantity"])
+                    ),
                 }
                 self.mqtt.publish(
                     "products",
@@ -356,6 +374,7 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
             return api_pb2.Reply(error=0)
 
         except:
+            traceback.print_exc()
             return api_pb2.Reply(
                 error=500, description="Ocorreu um erro ao deletar o pedido"
             )
@@ -366,7 +385,8 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
                 yield
 
             client_id = request.ID
-            for _, order in hash_map["orders"].items():
+            for _, order_str in hash_map["orders"].items():
+                order = json.loads(order_str)
                 if order["CID"] == client_id:
                     named_products = []
                     for order_product in order["products"]:
@@ -383,6 +403,7 @@ class OrderPortal(api_pb2_grpc.OrderPortalServicer):
                         data=json.dumps({"products": named_products}),
                     )
         except:
+            traceback.print_exc()
             yield
 
 

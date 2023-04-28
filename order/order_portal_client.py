@@ -106,7 +106,7 @@ def run():
                     )
                     data.append({"id": product_id, "quantity": product_quantity})
                     keep_updating_products = input(
-                        "Deseja adicionar mais um pedido? [S/N]"
+                        "Deseja alterar mais um pedido? [S/N]"
                     )
                     if keep_updating_products == "N":
                         break

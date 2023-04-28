@@ -2,6 +2,7 @@ import json
 import logging
 import sys
 from concurrent import futures
+import traceback
 
 import grpc
 from paho.mqtt import client as mqtt_client
@@ -9,13 +10,6 @@ from paho.mqtt import client as mqtt_client
 from proto import api_pb2, api_pb2_grpc
 from utils.get_by_id import get_client_by_id, get_product_by_id
 from utils.on_receive_message import on_receive_message
-
-# Operations on HashMap should follow this model:
-# {
-#   "key": "123",
-#   "op": "ADD" | "UPDATE" | "DELETE",
-#   "data": {}
-# }
 
 hash_map = {"clients": {}, "products": {}, "orders": {}}
 
@@ -45,6 +39,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             self.mqtt.publish("clients", json.dumps(body))
             return api_pb2.Reply(error=0)
         except:
+            traceback.print_exc()
             return api_pb2.Reply(
                 error=500, description="Ocorreu um erro ao criar o cliente"
             )
@@ -59,6 +54,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                 CID=client["CID"], data=json.dumps({"nome": client["name"]})
             )
         except:
+            traceback.print_exc()
             return api_pb2.Client(CID="0", data="")
 
     def UpdateClient(self, request, _):
@@ -80,6 +76,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             self.mqtt.publish("clients", json.dumps(body))
             return api_pb2.Reply(error=0)
         except:
+            traceback.print_exc()
             return api_pb2.Reply(
                 error=500, description="Ocorreu um erro ao atualizar o cliente"
             )
@@ -100,6 +97,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Reply(error=0)
 
         except:
+            traceback.print_exc()
             return api_pb2.Reply(
                 error=500, description="Ocorreu um erro ao deletar o cliente"
             )
@@ -157,6 +155,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             self.mqtt.publish("products", json.dumps(body))
             return api_pb2.Reply(error=0)
         except:
+            traceback.print_exc()
             return api_pb2.Reply(
                 error=500, description="Ocorreu um erro ao criar o produto"
             )
@@ -178,6 +177,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
                 ),
             )
         except:
+            traceback.print_exc()
             return api_pb2.Product(PID="0", data="")
 
     def UpdateProduct(self, request, _):
@@ -239,6 +239,7 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             self.mqtt.publish("products", json.dumps(body))
             return api_pb2.Reply(error=0)
         except:
+            traceback.print_exc()
             return api_pb2.Reply(
                 error=500, description="Ocorreu um erro ao atualizar o produto"
             )
@@ -266,13 +267,15 @@ class AdminPortal(api_pb2_grpc.AdminPortalServicer):
             return api_pb2.Reply(error=0)
 
         except:
+            traceback.print_exc()
             return api_pb2.Reply(
                 error=500, description="Ocorreu um erro ao deletar o produto"
             )
 
     def check_if_product_is_in_some_order(self, pid: str):
         is_present_in_some_order = False
-        for _, order in hash_map["orders"].items():
+        for _, order_str in hash_map["orders"].items():
+            order = json.loads(order_str)
             for order_product in order["products"]:
                 if order_product["PID"] == pid:
                     is_present_in_some_order = True
@@ -290,6 +293,7 @@ def serve():
     try:
         int(port)
     except:
+        traceback.print_exc()
         print("O valor passado para a porta é inválido")
         return
 
