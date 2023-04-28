@@ -181,3 +181,7 @@ Ao início da execução, deve-se informar o CID.
 ```bash
   python -m admin.admin_portal_server {port}
 ```
+
+### Vídeo de Demonstração
+
+https://youtu.be/RxP4luSeMmc

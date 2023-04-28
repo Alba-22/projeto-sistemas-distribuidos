@@ -18,9 +18,9 @@ def on_receive_message(hash_map: dict, msg: str):
     print(f"[TÓPICO = {msg.topic}]")
     result = json.loads(msg.payload.decode())
     if result["op"] == "ADD":
-        hash_map[msg.topic][result["key"]] = result["data"]
+        hash_map[msg.topic][result["key"]] = json.dumps(result["data"])
     elif result["op"] == "UPDATE":
-        hash_map[msg.topic][result["key"]] = result["data"]
+        hash_map[msg.topic][result["key"]] = json.dumps(result["data"])
     elif result["op"] == "DELETE":
         del hash_map[msg.topic][result["key"]]
     print(f"OP={result['op']}")
