@@ -12,9 +12,9 @@ def operation_to_socket(
         data: dict
     ):
     if data is not None:
-        socket.send(f"{collection.value}|{operation.value}|{identifier}|{json.dumps(data)}".encode())
+        socket.send(f"{collection.value}|{operation.value}|{collection.value}#{identifier}|{json.dumps(data)}".encode())
     else:
-        socket.send(f"{collection.value}|{operation.value}|{identifier}|None".encode())
+        socket.send(f"{collection.value}|{operation.value}|{collection.value}#{identifier}|None".encode())
 
 
 def operation_from_socket(socket: s) -> Tuple[Collection, Operation, str, str]:

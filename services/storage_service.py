@@ -13,8 +13,8 @@ from utils.socket_helper import message_to_socket, operation_from_socket
 class StorageService(SyncObj):
     def __init__(self, socket_port: int, self_address: str, partner_addresses: list[str]):
         super(StorageService, self).__init__(self_address, partner_addresses)
-        self.dbClientsPath = f"db_{socket_port}"
-        self.db = lmdb.open(self.dbClientsPath, map_size=50000000, writemap=True)
+        self.db_path = f"db_{socket_port}"
+        self.db = lmdb.open(self.db_path, map_size=50000000, writemap=True)
 
     @replicated
     def insert_client(self, cid: str, data: str) -> bool:
