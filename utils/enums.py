@@ -9,3 +9,4 @@ class Operation(Enum):
     Add = "Add"
     Update = "Update"
     Delete = "Delete"
+    Get = "Get"

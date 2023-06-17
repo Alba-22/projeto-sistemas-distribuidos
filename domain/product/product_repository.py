@@ -4,7 +4,7 @@ import socket as s
 from services.cache_service import CacheService
 from utils.enums import Collection, Operation
 from utils.errors import CannotCommunicateWithSocketException
-from utils.socket_helper import send_to_socket, server_socket_response
+from utils.socket_helper import operation_to_socket, message_from_socket
 
 class ProductRepository:
     """
@@ -12,10 +12,10 @@ class ProductRepository:
         to return desired information
     """
 
-    def __init__(self):
+    def __init__(self, socket_port: int):
         self.cache_service = CacheService()
         self.socket = s.socket()
-        self.socket_address = ("localhost", 9000)
+        self.socket_address = ("localhost", socket_port)
 
     def __create_socket(self):
         self.socket = s.socket()
@@ -33,8 +33,8 @@ class ProductRepository:
                 "quantity": str(product_data["quantity"]),
             }
 
-            send_to_socket(self.socket, Collection.Products, Operation.Add, pid, new_product)
-            if server_socket_response(self.socket) is True:
+            operation_to_socket(self.socket, Collection.Products, Operation.Add, pid, new_product)
+            if message_from_socket(self.socket) is True:
                 self.cache_service.put(Collection.Products, pid, new_product)
             else:
                 raise CannotCommunicateWithSocketException(None)
@@ -61,9 +61,9 @@ class ProductRepository:
                 "quantity": str(data["quantity"]),
             }
 
-            send_to_socket(self.socket, Collection.Products, Operation.Update, pid, updated_product)
+            operation_to_socket(self.socket, Collection.Products, Operation.Update, pid, updated_product)
 
-            if server_socket_response(self.socket) is True:
+            if message_from_socket(self.socket) is True:
                 self.cache_service.put(Collection.Products, pid, updated_product)
             else:
                 raise CannotCommunicateWithSocketException(None)
@@ -76,9 +76,9 @@ class ProductRepository:
         try:
             self.__create_socket()
 
-            send_to_socket(self.socket, Collection.Products, Operation.Delete, pid, None)
+            operation_to_socket(self.socket, Collection.Products, Operation.Delete, pid, None)
 
-            if server_socket_response(self.socket) is True:
+            if message_from_socket(self.socket) is True:
                 self.cache_service.delete(Collection.Products, pid)
             else:
                 raise CannotCommunicateWithSocketException(None)

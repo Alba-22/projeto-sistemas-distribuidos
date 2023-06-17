@@ -1,10 +1,11 @@
 import json
-import socket as s
+from typing import Optional
+from socket import socket as s
 
 from services.cache_service import CacheService
 from utils.enums import Collection, Operation
 from utils.errors import CannotCommunicateWithSocketException
-from utils.socket_helper import send_to_socket, server_socket_response
+from utils.socket_helper import operation_to_socket, message_from_socket
 
 
 class ClientRepository:
@@ -13,65 +14,57 @@ class ClientRepository:
         to return desired information
     """
 
-    def __init__(self):
+    def __init__(self, socket: s):
         self.cache_service = CacheService()
-        self.socket = s.socket()
-        self.socket_address = ("localhost", 9000)
+        self.socket = socket
 
-    def __create_socket(self):
-        self.socket = s.socket()
-        self.socket.connect(self.socket_address)
 
     def create_client(self, cid: str, data: str):
         try:
-            self.__create_socket()
             client_data: dict = json.loads(data)
             new_client: dict = {"CID": cid, "name": client_data["name"]}
-            send_to_socket(self.socket, Collection.Clients, Operation.Add, cid, new_client)
+            operation_to_socket(self.socket, Collection.Clients, Operation.Add, cid, new_client)
 
-            if server_socket_response(self.socket) is True:
+            if message_from_socket(self.socket) is not None:
                 self.cache_service.put(Collection.Clients, cid, new_client)
             else:
                 raise CannotCommunicateWithSocketException(None)
         except CannotCommunicateWithSocketException as e:
             raise e
-        finally:
-            self.socket.close()
 
-
-    def get_client_by_id(self, cid: str):
-        client = self.cache_service.get(Collection.Clients, cid)
-        if client is not None:
-            return client
+    def get_client_by_id(self, cid: str) -> Optional[dict]:
+        # client = self.cache_service.g et(Collection.Clients, cid)
+        # if client is not None:
+        #     return client
         # TODO: Consultar DB
-        return None
+        try:
+            operation_to_socket(self.socket, Collection.Clients, Operation.Get, cid, None)
+            result = message_from_socket(self.socket)
+            print(f"REPO: {result}")
+            return result
+        except CannotCommunicateWithSocketException as e:
+            raise e
 
     def update_client(self, cid: str, data: str):
         try:
-            self.__create_socket()
             client_data: dict = json.loads(data)
             updated_client: dict = {"CID": cid, "name": client_data["name"]}
-            send_to_socket(self.socket, Collection.Clients, Operation.Update, cid, updated_client)
+            operation_to_socket(self.socket, Collection.Clients, Operation.Update, cid, updated_client)
 
-            if server_socket_response(self.socket) is True:
+            if message_from_socket(self.socket) is not None:
                 self.cache_service.put(Collection.Clients, cid, updated_client)
             else:
                 raise CannotCommunicateWithSocketException(None)
         except CannotCommunicateWithSocketException as e:
             raise e
-        finally:
-            self.socket.close()
 
     def delete_client(self, cid: str):
         try:
-            self.__create_socket()
-            send_to_socket(self.socket, Collection.Clients, Operation.Delete, cid, None)
+            operation_to_socket(self.socket, Collection.Clients, Operation.Delete, cid, None)
 
-            if server_socket_response(self.socket) is True:
+            if message_from_socket(self.socket) is not None:
                 self.cache_service.delete(Collection.Clients, cid)
             else:
                 raise CannotCommunicateWithSocketException(None)
         except CannotCommunicateWithSocketException as e:
             raise e
-        finally:
-            self.socket.close()

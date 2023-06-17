@@ -1,7 +1,9 @@
 import logging
+import random
 import sys
 from concurrent import futures
 import traceback
+from socket import socket as s
 
 import grpc
 from domain.client.client_controller import ClientController
@@ -11,7 +13,7 @@ from domain.product.product_controller import ProductController
 from services.storage_service import StorageService
 
 from proto import  api_pb2_grpc
-from utils.socket_helper import retrieve_from_socket
+from utils.socket_helper import operation_from_socket
 
 class AdminPortal(api_pb2_grpc.AdminPortalServicer):
     """Provide methods that implement functionality of Admin Portal Server"""
@@ -56,9 +58,26 @@ def serve():
         print("O valor passado para a porta é inválido")
         return
 
-    client_repository = ClientRepository()
+    global socket
+
+    # choosen_replic = random.randint(1, 3)
+    choosen_replic = 1
+
+    if choosen_replic == 1:
+        socket_port = 20001
+    elif choosen_replic == 2:
+        socket_port = 20002
+    else:
+        socket_port = 20003
+
+    socket = s()
+    socket.connect(("localhost", socket_port))
+
+    print(f"Socket iniciado na porta {socket_port}")
+
+    client_repository = ClientRepository(socket)
     client_controller = ClientController(client_repository)
-    product_repository = ProductRepository()
+    product_repository = ProductRepository(socket_port)
     product_controller = ProductController(product_repository)
 
     print(f"Iniciando servidor gRPC na porta {port}...")
@@ -71,27 +90,10 @@ def serve():
     server.start()
     print("Servidor gRPC iniciado!")
 
-    # Iniciar o socket pegando alguma das réplicas aleatoriamente
-
-    # socket = s.socket()
-    # socket.bind(("localhost", 9000))
-    # socket.listen(3)
-
-    # while True:
-    #     connection, address = socket.accept()
-    #     with connection:
-    #         print("Connected to ", address)
-    #         collection, operation, identifier, data = retrieve_from_socket(connection.recv(1024))
-    #         result = storage.receive_message(collection, operation, identifier, data)
-    #         if result:
-    #             print("Request Successful")
-    #             connection.send("True".encode())
-    #         else:
-    #             print("Request Unsuccessful")
-    #             connection.send("False".encode())
-    #         connection.close()
+    server.wait_for_termination()
 
 
 if __name__ == "__main__":
+    socket = None
     logging.basicConfig()
     serve()
