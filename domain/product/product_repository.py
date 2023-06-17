@@ -2,7 +2,6 @@ import json
 import socket as s
 
 from services.cache_service import CacheService
-from services.storage_service import StorageService
 from utils.enums import Collection, Operation
 from utils.errors import CannotCommunicateWithSocketException
 from utils.socket_helper import send_to_socket, server_socket_response
@@ -13,8 +12,7 @@ class ProductRepository:
         to return desired information
     """
 
-    def __init__(self, storage: StorageService):
-        self.storage_service = storage
+    def __init__(self):
         self.cache_service = CacheService()
         self.socket = s.socket()
         self.socket_address = ("localhost", 9000)

@@ -2,7 +2,6 @@ import logging
 import sys
 from concurrent import futures
 import traceback
-import socket as s
 
 import grpc
 from domain.client.client_controller import ClientController
@@ -57,10 +56,9 @@ def serve():
         print("O valor passado para a porta é inválido")
         return
 
-    storage = StorageService("main:12000", ["partner: 130000"])
-    client_repository = ClientRepository(storage)
+    client_repository = ClientRepository()
     client_controller = ClientController(client_repository)
-    product_repository = ProductRepository(storage)
+    product_repository = ProductRepository()
     product_controller = ProductController(product_repository)
 
     print(f"Iniciando servidor gRPC na porta {port}...")
@@ -73,23 +71,25 @@ def serve():
     server.start()
     print("Servidor gRPC iniciado!")
 
-    socket = s.socket()
-    socket.bind(("localhost", 9000))
-    socket.listen(3)
+    # Iniciar o socket pegando alguma das réplicas aleatoriamente
 
-    while True:
-        connection, address = socket.accept()
-        with connection:
-            print("Connected to ", address)
-            collection, operation, identifier, data = retrieve_from_socket(connection.recv(1024))
-            result = storage.receive_message(collection, operation, identifier, data)
-            if result:
-                print("Request Successful")
-                connection.send("True".encode())
-            else:
-                print("Request Unsuccessful")
-                connection.send("False".encode())
-            connection.close()
+    # socket = s.socket()
+    # socket.bind(("localhost", 9000))
+    # socket.listen(3)
+
+    # while True:
+    #     connection, address = socket.accept()
+    #     with connection:
+    #         print("Connected to ", address)
+    #         collection, operation, identifier, data = retrieve_from_socket(connection.recv(1024))
+    #         result = storage.receive_message(collection, operation, identifier, data)
+    #         if result:
+    #             print("Request Successful")
+    #             connection.send("True".encode())
+    #         else:
+    #             print("Request Unsuccessful")
+    #             connection.send("False".encode())
+    #         connection.close()
 
 
 if __name__ == "__main__":
