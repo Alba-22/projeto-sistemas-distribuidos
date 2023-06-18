@@ -10,3 +10,4 @@ class Operation(Enum):
     Update = "Update"
     Delete = "Delete"
     Get = "Get"
+    List = "List"

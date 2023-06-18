@@ -8,12 +8,11 @@ from socket import socket as s
 import grpc
 from domain.client.client_controller import ClientController
 from domain.client.client_repository import ClientRepository
+from domain.order.order_repository import OrderRepository
 from domain.product.product_repository import ProductRepository
 from domain.product.product_controller import ProductController
-from services.storage_service import StorageService
 
 from proto import  api_pb2_grpc
-from utils.socket_helper import operation_from_socket
 
 class AdminPortal(api_pb2_grpc.AdminPortalServicer):
     """Provide methods that implement functionality of Admin Portal Server"""
@@ -58,27 +57,45 @@ def serve():
         print("O valor passado para a porta é inválido")
         return
 
-    global socket
+    global socket1
+    global socket2
 
-    # choosen_replic = random.randint(1, 3)
-    choosen_replic = 1
+    choosen_replic1 = random.randint(1, 3)
+    choosen_replic2 = random.randint(4, 6)
 
-    if choosen_replic == 1:
-        socket_port = 20001
-    elif choosen_replic == 2:
-        socket_port = 20002
+    if choosen_replic1 == 1:
+        socket_port1 = 20001
+    elif choosen_replic1 == 2:
+        socket_port1 = 20002
+    elif choosen_replic1 == 3:
+        socket_port1 = 20003
     else:
-        socket_port = 20003
+        exit(-1)
 
-    socket = s()
-    socket.connect(("localhost", socket_port))
+    if choosen_replic2 == 4:
+        socket_port2 = 20004
+    elif choosen_replic2 == 5:
+        socket_port2 = 20005
+    elif choosen_replic2 == 6:
+        socket_port2 = 20006
+    else:
+        exit(-1)
 
-    print(f"Socket iniciado na porta {socket_port}")
 
-    client_repository = ClientRepository(socket)
+    socket1 = s()
+    socket1.connect(("localhost", socket_port1))
+
+    socket2 = s()
+    socket2.connect(("localhost", socket_port2))
+
+    print(f"Socket iniciado na porta {socket_port1}")
+    print(f"Socket iniciado na porta {socket_port2}")
+
+    client_repository = ClientRepository(socket1, socket2)
     client_controller = ClientController(client_repository)
-    product_repository = ProductRepository(socket)
-    product_controller = ProductController(product_repository)
+    product_repository = ProductRepository(socket1, socket2)
+    order_repository = OrderRepository(socket1, socket2)
+    product_controller = ProductController(product_repository, order_repository)
 
     print(f"Iniciando servidor gRPC na porta {port}...")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -94,6 +111,7 @@ def serve():
 
 
 if __name__ == "__main__":
-    socket = None
+    socket1 = None
+    socket2 = None
     logging.basicConfig()
     serve()

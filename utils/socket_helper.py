@@ -18,7 +18,7 @@ def operation_to_socket(
 
 
 def operation_from_socket(socket: s) -> Tuple[Collection, Operation, str, str]:
-    data = socket.recv(1024)
+    data = socket.recv(8192)
     message = data.decode().split("|")
     collection = Collection[message[0]]
     operation = Operation[message[1]]
@@ -34,7 +34,7 @@ def message_to_socket(socket: s, message: Optional[dict]):
         socket.send(json.dumps(message).encode())
 
 def message_from_socket(socket: s) -> Optional[dict]:
-    data = socket.recv(1024)
+    data = socket.recv(8192)
     decoded = data.decode()
     print(f"msg_from_socket: {decoded}")
     if decoded == "None":

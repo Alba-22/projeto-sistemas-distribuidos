@@ -2,6 +2,7 @@ import json
 from socket import socket as s
 
 from services.cache_service import CacheService
+from utils.decide_chord import decide_chord
 from utils.enums import Collection, Operation
 from utils.errors import CannotCommunicateWithSocketException
 from utils.socket_helper import operation_to_socket, message_from_socket
@@ -12,9 +13,10 @@ class ProductRepository:
         to return desired information
     """
 
-    def __init__(self, socket: s):
+    def __init__(self, socket1: s, socket2: s):
         self.cache_service = CacheService()
-        self.socket = socket
+        self.socket1 = socket1
+        self.socket2 = socket2
 
     def create_product(self, pid: str, data: str):
         try:
@@ -27,8 +29,10 @@ class ProductRepository:
                 "quantity": str(product_data["quantity"]),
             }
 
-            operation_to_socket(self.socket, Collection.Products, Operation.Add, pid, new_product)
-            if message_from_socket(self.socket) is not None:
+            choosen_socket = decide_chord(pid, self.socket1, self.socket2)
+            operation_to_socket(choosen_socket, Collection.Products, Operation.Add, pid, new_product)
+
+            if message_from_socket(choosen_socket) is not None:
                 self.cache_service.put(Collection.Products, pid, new_product)
             else:
                 raise CannotCommunicateWithSocketException(None)
@@ -36,14 +40,16 @@ class ProductRepository:
             raise e
 
     def get_product_by_id(self, pid: str, check_cache: bool = False):
-        if check_cache == True:
+        if check_cache:
             product = self.cache_service.get(Collection.Products, pid)
             if product is not None:
                 return product
         try:
-            operation_to_socket(self.socket, Collection.Products, Operation.Get, pid, None)
-            result = message_from_socket(self.socket)
-            print(f"REPO: {result}")
+            choosen_socket = decide_chord(pid, self.socket1, self.socket2)
+            operation_to_socket(choosen_socket, Collection.Products, Operation.Get, pid, None)
+            result = message_from_socket(choosen_socket)
+            if result is not None:
+                self.cache_service.put(Collection.Products, pid, result)
             return result
         except CannotCommunicateWithSocketException as e:
             raise e
@@ -57,9 +63,10 @@ class ProductRepository:
                 "quantity": str(data["quantity"]),
             }
 
-            operation_to_socket(self.socket, Collection.Products, Operation.Update, pid, updated_product)
+            choosen_socket = decide_chord(pid, self.socket1, self.socket2)
+            operation_to_socket(choosen_socket, Collection.Products, Operation.Update, pid, updated_product)
 
-            if message_from_socket(self.socket) is not None:
+            if message_from_socket(choosen_socket) is not None:
                 self.cache_service.put(Collection.Products, pid, updated_product)
             else:
                 raise CannotCommunicateWithSocketException(None)
@@ -68,25 +75,12 @@ class ProductRepository:
 
     def delete_product(self, pid: str):
         try:
-            operation_to_socket(self.socket, Collection.Products, Operation.Delete, pid, None)
+            choosen_socket = decide_chord(pid, self.socket1, self.socket2)
+            operation_to_socket(choosen_socket, Collection.Products, Operation.Delete, pid, None)
 
-            if message_from_socket(self.socket) is not None:
+            if message_from_socket(choosen_socket) is not None:
                 self.cache_service.delete(Collection.Products, pid)
             else:
                 raise CannotCommunicateWithSocketException(None)
         except CannotCommunicateWithSocketException as e:
             raise e
-
-    def check_if_product_is_in_some_order(self, pid: str):
-        # TODO: refatorar para usar cache e acesso ao DB
-        return False
-        # is_present_in_some_order = False
-        # for _, order_str in hash_map["orders"].items():
-        #     order = json.loads(order_str)
-        #     for order_product in order["products"]:
-        #         if order_product["PID"] == pid:
-        #             is_present_in_some_order = True
-        #             break
-        #     if is_present_in_some_order:
-        #         break
-        # return is_present_in_some_order

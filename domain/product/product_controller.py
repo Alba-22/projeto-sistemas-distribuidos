@@ -1,5 +1,6 @@
 import json
 import traceback
+from domain.order.order_repository import OrderRepository
 from domain.product.product_repository import ProductRepository
 from proto import api_pb2
 from utils.response_messages import bad_request, internal_server_error, not_found, ok
@@ -11,12 +12,13 @@ class ProductController:
         validations and call repository to persist data into database/cache
     """
 
-    def __init__(self, repository: ProductRepository) -> None:
-        self.repository = repository
+    def __init__(self, product_repository: ProductRepository, order_repository: OrderRepository) -> None:
+        self.product_repository = product_repository
+        self.order_repository = order_repository
 
     def create_product(self, request):
         try:
-            product = self.repository.get_product_by_id(request.PID)
+            product = self.product_repository.get_product_by_id(request.PID)
             if product is not None:
                 return bad_request(f"Já existe um produto com o ID {request.PID}")
 
@@ -38,7 +40,7 @@ class ProductController:
             except ValueError:
                 return bad_request("O valor informado para quantidade é inválido!")
 
-            self.repository.create_product(request.PID, request.data)
+            self.product_repository.create_product(request.PID, request.data)
             return ok()
         except:
             traceback.print_exc()
@@ -46,7 +48,7 @@ class ProductController:
 
     def get_product(self, request):
         try:
-            product = self.repository.get_product_by_id(request.ID, check_cache=True)
+            product = self.product_repository.get_product_by_id(request.ID, check_cache=True)
             if product is None:
                 return api_pb2.Product(PID="0", data="")
 
@@ -66,11 +68,11 @@ class ProductController:
 
     def update_product(self, request):
         try:
-            product = self.repository.get_product_by_id(request.PID)
+            product = self.product_repository.get_product_by_id(request.PID)
             if product is None:
                 return not_found(f"Não há nenhum usuário com o ID {request.PID}")
 
-            if self.repository.check_if_product_is_in_some_order(product["PID"]):
+            if self.order_repository.check_if_product_is_in_some_order(product["PID"]):
                 return bad_request(
                     "Não é possível atualizar o produto, pois ele já está presente em um pedido"
                 )
@@ -94,7 +96,7 @@ class ProductController:
             except ValueError:
                 return bad_request("O valor informado para quantidade é inválido!")
 
-            self.repository.update_product(request.PID, product_data)
+            self.product_repository.update_product(request.PID, product_data)
             return ok()
         except:
             traceback.print_exc()
@@ -102,16 +104,16 @@ class ProductController:
 
     def delete_product(self, request):
         try:
-            product = self.repository.get_product_by_id(request.ID)
+            product = self.product_repository.get_product_by_id(request.ID)
             if product is None:
                 return not_found(f"Não há nenhum produto com o ID {request.ID}")
 
-            if self.repository.check_if_product_is_in_some_order(request.ID):
+            if self.order_repository.check_if_product_is_in_some_order(request.ID):
                 return bad_request(
                     "Não é possível remover o produto, pois ele já está presente em um pedido"
                 )
 
-            self.repository.delete_product(request.ID)
+            self.product_repository.delete_product(request.ID)
             return ok()
         except:
             traceback.print_exc()
