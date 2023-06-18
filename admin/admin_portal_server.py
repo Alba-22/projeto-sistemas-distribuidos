@@ -77,7 +77,7 @@ def serve():
 
     client_repository = ClientRepository(socket)
     client_controller = ClientController(client_repository)
-    product_repository = ProductRepository(socket_port)
+    product_repository = ProductRepository(socket)
     product_controller = ProductController(product_repository)
 
     print(f"Iniciando servidor gRPC na porta {port}...")

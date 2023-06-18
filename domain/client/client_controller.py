@@ -27,7 +27,7 @@ class ClientController:
 
     def get_client(self, request):
         try:
-            client = self.repository.get_client_by_id(request.ID)
+            client = self.repository.get_client_by_id(request.ID, check_cache=True)
             if client is None:
                 return api_pb2.Client(CID="0", data="")
 

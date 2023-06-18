@@ -17,35 +17,34 @@ class StorageService(SyncObj):
         self.db = lmdb.open(self.db_path, map_size=50000000, writemap=True)
 
     @replicated
-    def insert_client(self, cid: str, data: str) -> bool:
+    def insert(self, identifier: str, data: str):
         print("INSERTING IN DB")
         with self.db.begin(write=True) as transaction:
-            transaction.put(cid.encode(), data.encode())
-            return True
+            transaction.put(identifier.encode(), data.encode())
 
-    def get_client_by_id(self, cid: str) -> Optional[dict]:
+    def get_by_id(self, identifier: str) -> Optional[dict]:
         print("GETTING FROM DB")
         try:
             with self.db.begin(write=True) as transaction:
-                client = transaction.get(cid.encode())
-                print(f"DB: {client}")
-                if client is None:
+                result = transaction.get(identifier.encode())
+                print(f"DB: {result}")
+                if result is None:
                     return None
-                return json.loads(client.decode())
+                return json.loads(result.decode())
         except:
             return None
     
     @replicated
-    def update_client(self, cid: str, data: str):
+    def update(self, identifier: str, data: str):
         print("UPDATED IN DB")
         with self.db.begin(write=True) as transaction:
-            transaction.put(cid.encode(), data.encode())
+            transaction.put(identifier.encode(), data.encode())
 
     @replicated
-    def delete_client(self, cid: str):
+    def delete(self, identifier: str):
         print("DELETED FROM DB")
         with self.db.begin(write=True) as transaction:
-            transaction.delete(cid.encode())
+            transaction.delete(identifier.encode())
             
 
 class StorageSetup():
@@ -80,17 +79,17 @@ class StorageSetup():
 
     def process_message(self, collection: Collection, operation: Operation, identifier: str, data):
         print("Processing Message")
-        if collection == Collection.Clients and operation == Operation.Add:
-            self.replic.insert_client(identifier, data)
+        if operation == Operation.Add:
+            self.replic.insert(identifier, data)
             return {}
-        elif collection == Collection.Clients and operation == Operation.Get:
-            client = self.replic.get_client_by_id(identifier)
+        elif operation == Operation.Get:
+            client = self.replic.get_by_id(identifier)
             return client
-        elif collection == Collection.Clients and operation == Operation.Update:
-            self.replic.update_client(identifier, data)
+        elif operation == Operation.Update:
+            self.replic.update(identifier, data)
             return {}
-        elif collection == Collection.Clients and operation == Operation.Delete:
-            self.replic.delete_client(identifier)
+        elif operation == Operation.Delete:
+            self.replic.delete(identifier)
             return {}
 
 if __name__ == '__main__':

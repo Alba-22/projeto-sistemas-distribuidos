@@ -46,7 +46,7 @@ class ProductController:
 
     def get_product(self, request):
         try:
-            product = self.repository.get_product_by_id(request.ID)
+            product = self.repository.get_product_by_id(request.ID, check_cache=True)
             if product is None:
                 return api_pb2.Product(PID="0", data="")
 

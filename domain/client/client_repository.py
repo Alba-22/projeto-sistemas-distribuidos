@@ -32,11 +32,11 @@ class ClientRepository:
         except CannotCommunicateWithSocketException as e:
             raise e
 
-    def get_client_by_id(self, cid: str) -> Optional[dict]:
-        # client = self.cache_service.g et(Collection.Clients, cid)
-        # if client is not None:
-        #     return client
-        # TODO: Consultar DB
+    def get_client_by_id(self, cid: str, check_cache: bool = False) -> Optional[dict]:
+        if check_cache == True:
+            client = self.cache_service.get(Collection.Clients, cid)
+            if client is not None:
+                return client
         try:
             operation_to_socket(self.socket, Collection.Clients, Operation.Get, cid, None)
             result = message_from_socket(self.socket)

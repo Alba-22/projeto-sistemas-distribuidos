@@ -1,5 +1,5 @@
 import json
-import socket as s
+from socket import socket as s
 
 from services.cache_service import CacheService
 from utils.enums import Collection, Operation
@@ -12,18 +12,12 @@ class ProductRepository:
         to return desired information
     """
 
-    def __init__(self, socket_port: int):
+    def __init__(self, socket: s):
         self.cache_service = CacheService()
-        self.socket = s.socket()
-        self.socket_address = ("localhost", socket_port)
-
-    def __create_socket(self):
-        self.socket = s.socket()
-        self.socket.connect(self.socket_address)
+        self.socket = socket
 
     def create_product(self, pid: str, data: str):
         try:
-            self.__create_socket()
             product_data = json.loads(data)
 
             new_product = {
@@ -34,26 +28,28 @@ class ProductRepository:
             }
 
             operation_to_socket(self.socket, Collection.Products, Operation.Add, pid, new_product)
-            if message_from_socket(self.socket) is True:
+            if message_from_socket(self.socket) is not None:
                 self.cache_service.put(Collection.Products, pid, new_product)
             else:
                 raise CannotCommunicateWithSocketException(None)
         except CannotCommunicateWithSocketException as e:
             raise e
-        finally:
-            self.socket.close()
 
-    def get_product_by_id(self, pid: str):
-        product = self.cache_service.get(Collection.Products, pid)
-        if product is not None:
-            return product
-        # TODO: Consultar DB
-        return None
+    def get_product_by_id(self, pid: str, check_cache: bool = False):
+        if check_cache == True:
+            product = self.cache_service.get(Collection.Products, pid)
+            if product is not None:
+                return product
+        try:
+            operation_to_socket(self.socket, Collection.Products, Operation.Get, pid, None)
+            result = message_from_socket(self.socket)
+            print(f"REPO: {result}")
+            return result
+        except CannotCommunicateWithSocketException as e:
+            raise e
 
     def update_product(self, pid: str, data: dict):
         try:
-            self.__create_socket()
-
             updated_product = {
                 "PID": pid,
                 "name": data["name"],
@@ -63,29 +59,23 @@ class ProductRepository:
 
             operation_to_socket(self.socket, Collection.Products, Operation.Update, pid, updated_product)
 
-            if message_from_socket(self.socket) is True:
+            if message_from_socket(self.socket) is not None:
                 self.cache_service.put(Collection.Products, pid, updated_product)
             else:
                 raise CannotCommunicateWithSocketException(None)
         except CannotCommunicateWithSocketException as e:
             raise e
-        finally:
-            self.socket.close()
 
     def delete_product(self, pid: str):
         try:
-            self.__create_socket()
-
             operation_to_socket(self.socket, Collection.Products, Operation.Delete, pid, None)
 
-            if message_from_socket(self.socket) is True:
+            if message_from_socket(self.socket) is not None:
                 self.cache_service.delete(Collection.Products, pid)
             else:
                 raise CannotCommunicateWithSocketException(None)
         except CannotCommunicateWithSocketException as e:
             raise e
-        finally:
-            self.socket.close()
 
     def check_if_product_is_in_some_order(self, pid: str):
         # TODO: refatorar para usar cache e acesso ao DB
