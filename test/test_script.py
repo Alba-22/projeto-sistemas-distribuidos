@@ -44,6 +44,7 @@ def run():
         return
 
     print("---------------------------------------------------------------------------")
+    input("Pressione qualquer tecla para começar")
     print(f"Buscando cliente com CID={cid}")
     result = admin_stub.RetrieveClient(api_pb2.ID(ID="44"))
     if result.CID != "0":
@@ -57,6 +58,7 @@ def run():
         return
 
     print("---------------------------------------------------------------------------")
+    input("Pressione qualquer tecla para começar")
     print(f"Atualizando dados do cliente com CID={cid}")
     result = admin_stub.UpdateClient(
         api_pb2.Client(CID=cid, data=json.dumps({"name": "Lewis Carl Hamilton"}))
@@ -68,6 +70,7 @@ def run():
         return
 
     print("---------------------------------------------------------------------------")
+    input("Pressione qualquer tecla para começar")
     print(f"Deletando cliente com CID={cid}")
     result = admin_stub.DeleteClient(api_pb2.ID(ID=cid))
     if result.error == 0:
@@ -100,6 +103,7 @@ def run():
         return
 
     print("---------------------------------------------------------------------------")
+    input("Pressione qualquer tecla para começar")
     print("Obtendo produto com PID=13")
     result = admin_stub.RetrieveProduct(api_pb2.ID(ID=pid))
     if len(result.PID) != 0:
@@ -113,6 +117,7 @@ def run():
         return
 
     print("---------------------------------------------------------------------------")
+    input("Pressione qualquer tecla para começar")
     print("Atualizando produto com PID=13")
     result = admin_stub.UpdateProduct(
         api_pb2.Product(
@@ -133,6 +138,7 @@ def run():
         return
 
     print("---------------------------------------------------------------------------")
+    input("Pressione qualquer tecla para começar")
     print("Deletando produto com PID=13")
     result = admin_stub.DeleteProduct(api_pb2.ID(ID=pid))
     if result.error == 0:
@@ -153,6 +159,8 @@ def run():
     admin_stub.CreateClient(
         api_pb2.Client(CID=cid, data=json.dumps({"name": "Dustin"}))
     )
+    print("Novo cliente criado")
+    input("Pressione qualquer tecla para continuar")
     # Criar produtos
     admin_stub.CreateProduct(
         api_pb2.Product(
@@ -166,6 +174,8 @@ def run():
             ),
         )
     )
+    print("Novo produto criado")
+    input("Pressione qualquer tecla para continuar")
     admin_stub.CreateProduct(
         api_pb2.Product(
             PID=pid2,
@@ -179,6 +189,8 @@ def run():
         )
     )
     # Criar pedido
+    print("Novo produto criado")
+    input("Pressione qualquer tecla para continuar")
     print("Criando pedido com um produto")
     result = order_stub.CreateOrder(
         api_pb2.Order(

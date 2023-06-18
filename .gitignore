@@ -1,1 +1,6 @@
 **/__pycache__/
+db/
+venv
+/db_*
+
+.vscode/launch.json

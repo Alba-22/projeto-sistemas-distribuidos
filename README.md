@@ -1,6 +1,8 @@
 # Projeto Sistemas Distribuídos
 
-Um sistema básico de simulação de um e-commerce simples para a disciplina GBC074 - Sistemas Distribuídos. O foco é fazer a comunicação entre diferentes processos por meio de gRPC e MQTT.
+Um sistema básico de simulação de um e-commerce simples para a disciplina GBC074 - Sistemas Distribuídos. O projeto é dividido em 2 partes, sendo a primeira com uso de MQTT para comunicação entre processos e a segunda com o uso de conceitos de replicação de máquinas de estados e difusão atômica.
+
+# Parte 1
 
 ## Funcionalidades implementadas
 
@@ -185,3 +187,37 @@ Ao início da execução, deve-se informar o CID.
 ### Vídeo de Demonstração
 
 https://youtu.be/RxP4luSeMmc
+
+# Parte 2
+
+### Compilação e Execução do Projeto
+
+Inicialmente, deve-se subir as réplicas do PySyncObj, utilizando dos seguintes comandos:
+
+```sh
+# Réplicas para IDs pares
+python3 -m services.storage_service 1
+python3 -m services.storage_service 2
+python3 -m services.storage_service 3
+# Réplicas para IDs ímpares
+python3 -m services.storage_service 4
+python3 -m services.storage_service 5
+python3 -m services.storage_service 6
+```
+
+Após isso, deve-se subir as instâncias dos servidores pelo comando:
+
+```sh
+# Subindo um cliente e servidor para portal de ADMIN
+python3 -m admin.admin_portal_server {port}
+python3 -m admin.admin_portal_client {port}
+# Subindo um cliente e servidor para portal de ORDER
+python3 -m order.order_portal_server {port}
+python3 -m order.order_portal_client {port}
+```
+
+em que `{port}` é a porta usada para a comunicação no gRPC entre um cliente e um servidor. Nisso, cada servidor usará uma porta diferente, mas é possível que vários clientes conectem na mesma porta, desde que aponte para o servidor correspondente(admin ou order)
+
+### Vídeo de Demonstração
+
+https://ufubr-my.sharepoint.com/:v:/g/personal/alba_22_ufu_br/ETZnbuxuKhBJhB69jsV_cakBT_x2XjEuS9bPrRV2HP5sYA?e=lyZqjq

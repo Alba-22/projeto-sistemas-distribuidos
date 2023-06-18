@@ -73,21 +73,22 @@ def run():
             print("> Obter dados do pedido")
             order_id = input("Digite o ID do pedido: ")
             result = stub.RetrieveOrder(api_pb2.ID(ID=order_id))
-            if result.OID == 0:
+            if result.OID == "0":
                 print("Não há nenhum pedido com o ID digitado")
-            data = json.loads(result.data)
-            if not isinstance(data["products"], list):
-                print("Ocorreu um erro")
-            elif len(data) == 0:
-                print("O pedido ainda não possui nenhum produto adicionado")
             else:
-                print("--------------------------------")
-                print(f"Produtos do pedido {order_id}: ")
-                print("--------------------------------")
-                for product in data["products"]:
-                    for key, value in product.items():
-                        print(f"[-] {key}: {value}")
+                data = json.loads(result.data)
+                if not isinstance(data["products"], list):
+                    print("Ocorreu um erro")
+                elif len(data) == 0:
+                    print("O pedido ainda não possui nenhum produto adicionado")
+                else:
                     print("--------------------------------")
+                    print(f"Produtos do pedido {order_id}: ")
+                    print("--------------------------------")
+                    for product in data["products"]:
+                        for key, value in product.items():
+                            print(f"[-] {key}: {value}")
+                        print("--------------------------------")
             end_of_option()
         elif option == "3":
             clear_screen()
